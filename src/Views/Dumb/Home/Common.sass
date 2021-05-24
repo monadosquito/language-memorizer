@@ -1,0 +1,27 @@
+.Home
+  background: repeating-radial-gradient(circle at 20% 100%, #FEF9FF 50.5%, #F2DFD7 51%, #FEF9FF 51.5%, #FEF9FF 65%)
+  padding: 2vh 4vw
+  height: 100vh
+  overflow: auto
+  font-size: 1.2rem
+
+  &-BundleListItem
+    &::-webkit-details-marker
+      color: #736CED
+
+  &-ListItem
+    list-style: none
+
+    &_nonbundled:before
+      content: '\00B7'
+      color: #736CED
+      font-size: 4rem
+      line-height: 1.2rem
+      list-style: none
+      vertical-align: top
+
+  &-Title
+    color: #736CED
+
+    &_inline
+      display: inline
