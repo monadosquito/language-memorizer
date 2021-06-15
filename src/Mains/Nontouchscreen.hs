@@ -12,10 +12,14 @@ import System.Directory (makeAbsolute)
 import Text.Sass.Compilation (StringResult, compileFile)
 import Text.Sass.Options (defaultSassOptions)
 #endif
+import Control.Lens ((^.), (^?))
+import Control.Lens.Combinators (_Right, non)
+import Miso.String (ms)
 
 import System.Environment (getEnv)
 
-import Model.Action (Action (DoNothing))
+import Model.Action (Action (DoNothing, HandleUri))
+import Model.Model (Model (..), Set ())
 import Model.UpdateModel (updateModel)
 import Views.Dumb.Providing.Root.Nontouchscreen (root)
 
@@ -37,13 +41,19 @@ runApp app = app
 #endif
 
 main :: IO ()
-main = runApp $ M.startApp M.App
-    { events        = M.defaultEvents
-    , initialAction = DoNothing
-    , logLevel      = M.Off
-    , model         = ()
-    , mountPoint    = Nothing
-    , subs          = []
-    , update        = updateModel
-    , view          = root
-    }
+main = runApp $ do
+    uri <- M.getCurrentURI
+    sets <- M.getLocalStorage $ ms "sets" :: M.JSM (Either String [Set])
+    M.startApp M.App
+        { events        = M.defaultEvents
+        , initialAction = DoNothing
+        , logLevel      = M.Off
+        , model         = Model
+            { _sets = sets ^? _Right ^. non []
+            , _uri  = uri
+            }
+        , mountPoint    = Nothing
+        , subs          = [ M.uriSub HandleUri ]
+        , update        = updateModel
+        , view          = root
+        }

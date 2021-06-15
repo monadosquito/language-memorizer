@@ -1,1 +1,39 @@
 @import 'Common'
+
+@import '../../ActivePage/Touchscreen'
+@import '../../Footer/Common'
+@import '../../Header/Common'
+@import '../../../Smart/Set/Common'
+
+
+\:root
+  --footer-height: 10vh
+
+body
+  &.covered
+    overflow: hidden
+
+  &[class='']
+    overflow: auto
+
+.Root
+  &-ActivePage
+    height: calc(100vh - var(--footer-height))
+    margin-bottom: var(--footer-height)
+
+  &-Footer
+    position: fixed
+    bottom: 0
+    left: 0
+
+    height: var(--footer-height)
+    width: 100vw
+
+  &-Menu
+    position: fixed
+
+    height: calc(100vh - var(--footer-height))
+    width: 100vw
+
+    &_visible
+      transform: translateY(calc(-100vh + var(--footer-height)))

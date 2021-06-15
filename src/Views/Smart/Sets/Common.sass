@@ -1,0 +1,53 @@
+.Sets
+  background: #FEF9FF
+  display: flex
+  flex-flow: column
+  gap: 4vw
+  justify-content: flex-end
+  padding: 2vh 4vw
+
+  &-Button
+    flex-basis: 14%
+
+  &-SetList
+    background: #F2DFD7
+    border-top-left-radius: 8px
+    border-top-right-radius: 8px
+    display: flex
+    flex: 1
+    flex-basis: 60%
+    flex-flow: column
+    justify-content: flex-start 
+    list-style: none
+    margin: 0
+    overflow: auto
+    padding: 2vh 4vw
+
+    &Item
+      align-items: center
+      background: #D4C1EC
+      display: flex
+      gap: 4vw 2vh
+      justify-content: flex-end 
+      padding: 2vh 4vw
+
+      &Name
+        flex: 1
+
+      &:first-child
+        border-top-left-radius: 8px
+        border-top-right-radius: 8px
+
+      &:last-child
+        border-bottom-left-radius: 8px
+        border-bottom-right-radius: 8px
+
+      &:nth-child(even)
+        background: #FEF9FF
+
+  &-Form
+    border-top-left-radius: 0
+    border-top-right-radius: 0
+
+    &Field
+      flex-basis: 80%

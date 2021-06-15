@@ -1,0 +1,42 @@
+@import '../../Dumb/Button/Common'
+
+
+.Set
+  align-items: stretch
+  background: #FEF9FF
+  display: flex
+  flex-flow: column
+  row-gap: 2vh
+  justify-content: flex-end
+  padding: 2vh 4vw
+
+  &-Button
+    &:last-child
+      width: 6vh
+
+  &-FormField
+    width: 50px
+
+  &-SaveSetButton
+    display: none
+
+    @extend .Button
+
+  &-Translate
+    display: flex
+    justify-content: flex-end
+    gap: 4vw 2vh
+    padding-left: 10vw
+
+  &-UnitFormContainer
+    display: flex
+    height: 73.5vh
+    flex-flow: column
+    list-style: none
+    margin: 0
+    overflow-y: scroll
+    padding: 0
+    row-gap: 2vh
+
+#editUnitFormsContainer > #emptyUnit
+  display: none

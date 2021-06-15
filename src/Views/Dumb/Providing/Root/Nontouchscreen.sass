@@ -1,3 +1,24 @@
 @import 'Common'
 
+@import '../../ActivePage/Nontouchscreen'
+@import '../../Form/Nontouchscreen'
+@import '../../Header/Common'
 @import '../../Home/Nontouchscreen'
+@import '../../../Smart/Set/Common'
+@import '../../../Smart/Sets/Nontouchscreen'
+
+
+\:root
+  --header-height: 6vh
+
+.Root
+  &-ActivePage
+    height: calc(100vh - var(--header-height))
+    margin-top: var(--header-height)
+
+  &-Header
+    position: fixed
+    inset: 0 0
+
+    height: var(--header-height)
+    width: 100vw

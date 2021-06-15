@@ -9,12 +9,15 @@ import Miso (View (), class_, div_)
 import Model.Action (Action ())
 import Model.Model (Model ())
 import Utils (BemClass (BemClass))
-import Views.Dumb.Home.Common (home)
+import Views.Dumb.ActivePage.Common (activePage)
+import Views.Dumb.Footer.Common (footer)
+import Views.Smart.Router.Common (router)
 
 
 root :: Model -> View Action
-root _ = div_
+root model = div_
     [ class_ "Root"
     ]
-    [ home $ BemClass "Root" [] []
+    [ activePage (BemClass "Root" [] []) $ router model
+    , footer $ BemClass "Root" [] []
     ]
