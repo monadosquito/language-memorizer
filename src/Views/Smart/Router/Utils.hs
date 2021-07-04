@@ -5,6 +5,7 @@ module Views.Smart.Router.Utils
     ( goHome
     , goSet
     , goSets
+    , goSettings
     , routes
     ) where
 
@@ -17,17 +18,19 @@ import Model.Action (Action (ChangeUri))
 import Utils (SetIx ())
 
 
-type Routes = Home :<|> Set :<|> Sets
-type Home   = View Action
-type Set    = "set" :> Capture "id" Int :> View Action
-type Sets   = "sets" :> View Action
+type Routes = Home :<|> Set :<|> Sets :<|> Settings
+type Home     = View Action
+type Set      = "set" :> Capture "id" Int :> View Action
+type Sets     = "sets" :> View Action
+type Settings = "settings" :> View Action
 
 routes :: Proxy Routes
 routes = Proxy :: Proxy Routes
 
-goHome, goSets :: Action
-goHome = ChangeUri . linkURI $ safeLink routes (Proxy :: Proxy Home)
-goSets = ChangeUri . linkURI $ safeLink routes (Proxy :: Proxy Sets)
+goHome, goSets, goSettings :: Action
+goHome     = ChangeUri . linkURI $ safeLink routes (Proxy :: Proxy Home)
+goSets     = ChangeUri . linkURI $ safeLink routes (Proxy :: Proxy Sets)
+goSettings = ChangeUri . linkURI $ safeLink routes (Proxy :: Proxy Settings)
 
 goSet :: SetIx -> Action
 goSet setIx = ChangeUri . linkURI $ safeLink routes (Proxy :: Proxy Set) setIx

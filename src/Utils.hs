@@ -2,11 +2,16 @@
 {-# LANGUAGE OverloadedStrings  #-}
 
 module Utils
-    ( BemClass (..)
-    , FormMark ()
-    , SetIx    ()
+    ( BemClass   (..)
+    , FormMark   ()
+    , Page       ()
+    , PagesCount ()
+    , SetIx      ()
+    , UnitIx     ()
     , bemClass
     , formData
+    , pagesCount
+    , paginate
     ) where
 
 import Data.Aeson (FromJSON ())
@@ -55,6 +60,17 @@ formData formMark reseting = parse =<< eval js
         \ "
 type Reseting = Bool
 
+pagesCount :: PageCount -> PaginatedLength -> PagesCount
+pagesCount _         (-1)         = 0
+pagesCount pageCount paginatedLen =
+    div paginatedLen pageCount + if mod paginatedLen pageCount == 0 then 0 else 1
+type PageCount       = Int
+type PaginatedLength = Int
+
+paginate :: Page -> PagesCount -> [a] -> [a]
+paginate _    0           xs = xs
+paginate page pagesCount' xs = take pagesCount' $ drop (page * pagesCount') xs
+
 type BlockModifier   = Modifier
 type BlockName       = Name
 type ElementModifier = Modifier
@@ -62,5 +78,8 @@ type Modifier        = String
 type Name            = String
 type ParentName      = Name
 
-type FormMark = MisoString
-type SetIx    = Int
+type FormMark   = MisoString
+type Page       = Int
+type PagesCount = Int
+type SetIx      = Int
+type UnitIx     = Int

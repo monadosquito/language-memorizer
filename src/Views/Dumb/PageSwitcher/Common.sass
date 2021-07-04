@@ -1,0 +1,30 @@
+.PageSwitcher
+  background: #F2DFD7
+  display: flex
+  justify-content: flex-end
+  gap: 4vw
+  padding: 2vh 4vw
+
+  &_hidden
+    display: none
+
+  &-JumpPageButtonContainer
+    display: flex
+    flex-basis: 65%
+    gap: 2vw 1vh
+    overflow-x: auto
+
+    & > .Button
+      flex-basis: 16%
+
+      &:first-child
+        margin-left: auto
+
+  &-SwitchPageButtonContainer
+    display: flex
+    flex-basis: 45%
+    gap: 2vw 1vh
+    justify-content: flex-end 
+
+    & > .Button
+      flex-basis: 12vw

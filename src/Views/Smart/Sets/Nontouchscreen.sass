@@ -1,23 +1,33 @@
 .Sets
-  gap: 2vh
-  justify-content: flex-start
+  display: block
   padding: 2vh 20vw
 
   &-Form
-    align-self: center
     border-radius: 8px
-    flex-basis: 10%
-    padding: 3vh 1vw
-    width: 40%
+    display: inline-flex
+    margin-left: 2%
+    padding: 2vh 1vw
+    width: 38%
+
+  &-PageSwitcher
+    border-radius: 8px
+    display: inline-flex
+    gap: 2vw
+    padding: 2.5vh 1vw
+    width: 60%
+
+    & > *
+      gap: 1vw
 
   &-SetList
     align-items: center
     border-radius: 8px
     flex: 0
-    flex-basis: 79%
     flex-wrap: wrap
-    gap: 3vh 1.3vw
-    padding: 4vh 2vw
+    gap: 2vh 1.3vw
+    height: 81%
+    margin-bottom: 2vh
+    padding: 2vh 1vw
 
     &Item
       border-radius: 8px
