@@ -22,6 +22,7 @@ import Views.Smart.Router.Utils (routes)
 import Views.Smart.Set.Common (set)
 import Views.Smart.Sets.Common (sets')
 import Views.Smart.Settings.Common (settings')
+import Views.Smart.Statistics.Common (statistics')
 
 
 makeFieldsNoPrefix ''LiteSet
@@ -52,3 +53,4 @@ router model = either (const . home $ BemClass "ActivePage" [] []) id
         setIx')
        :<|> sets' (BemClass "ActivePage" [] [])
        :<|> settings' (BemClass "ActivePage" [] [])
+       :<|> statistics' (BemClass "ActivePage" [] [])

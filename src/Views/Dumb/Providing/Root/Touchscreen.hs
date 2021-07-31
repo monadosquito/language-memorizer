@@ -19,7 +19,7 @@ import Views.Dumb.Footer.Common (footer)
 import Views.Dumb.Link.Common (link)
 import Views.Dumb.Menu.Common (menu)
 import Views.Smart.Router.Common (router)
-import Views.Smart.Router.Utils (goHome, goSettings)
+import Views.Smart.Router.Utils (goHome, goSets, goSettings)
 
 
 makeFieldsNoPrefix ''Model
@@ -33,6 +33,7 @@ root model = div_
         (BemClass "Root" [] [ if model ^. menuIsVisible then "visible" else "" ])
         [ link (BemClass "Root" [] []) goHome "Home"
         , link (BemClass "Root" [] []) goSettings "Settings"
+        , link (BemClass "Root" [] []) goSets "Sets"
         ]
     , footer $ BemClass "Root" [] []
     ]

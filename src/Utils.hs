@@ -1,5 +1,8 @@
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE DerivingStrategies     #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Utils
     ( BemClass        (..)
@@ -11,15 +14,28 @@ module Utils
     , UnitIx          ()
     , bemClass
     , formData
+    , listedStep
     , pagesCount
     , paginate
+    , setResultsIsDone
     ) where
 
+import Control.Lens ((^.), (^..), (^?))
+import Control.Lens.Combinators (_head, each, ix, non, to)
+import Control.Lens.TH (makeFieldsNoPrefix)
+import Control.Lens.Traversal (traversed)
 import Data.Aeson (FromJSON ())
 import Language.Javascript.JSaddle (eval)
 import Miso.String (MisoString (), ms)
 import Miso (JSM (), parse)
 
+import Model.Model (LiteSet (), Memorizing (), Model (), Set (), SetResult (SetResult))
+
+
+makeFieldsNoPrefix ''LiteSet
+makeFieldsNoPrefix ''Memorizing
+makeFieldsNoPrefix ''Model
+makeFieldsNoPrefix ''Set
 
 data BemClass
     = BemClass ParentName [BlockModifier] [ElementModifier]
@@ -32,9 +48,9 @@ bemClass blockName (BemClass parentName blockModifiers elemModifiers) = ms
         ++ bemModifiers (parentName ++ "-" ++ blockName) elemModifiers
 
 bemModifiers :: Name -> [Modifier] -> String
-bemModifiers _    []         = ""
-bemModifiers name modifiers  =
-    ' ' : (unwords . map ((name ++ "_") ++) . filter (not . null) $ modifiers)
+bemModifiers _     []         = ""
+bemModifiers name' modifiers  =
+    ' ' : (unwords . map ((name' ++ "_") ++) . filter (not . null) $ modifiers)
 
 formData :: FromJSON a => FormMark -> Reseting -> JSM [a]
 formData formMark reseting = parse =<< eval js
@@ -61,6 +77,14 @@ formData formMark reseting = parse =<< eval js
         \ "
 type Reseting = Bool
 
+listedStep :: Memorizing -> a -> [a]
+listedStep memorizing' step =
+    if memorizing' ^. initLiteSetsLen
+            == memorizing' ^.. liteSets.each.unitIxs.each ^. to length
+        || memorizing' ^. pause
+    then []
+    else [ step ]
+
 pagesCount :: PageCount -> PaginatedLength -> PagesCount
 pagesCount _         (-1)         = 0
 pagesCount pageCount paginatedLen =
@@ -72,8 +96,13 @@ paginate :: Page -> PagesCount -> [a] -> [a]
 paginate _    0           xs = xs
 paginate page pagesCount' xs = take pagesCount' $ drop (page * pagesCount') xs
 
-type BlockName       = Name
+setResultsIsDone :: Model -> Bool
+setResultsIsDone model =
+    and $ model ^? statistics._head.traversed.to (\(SetResult setIx' steps') ->
+        steps' ^. to length == model ^? sets.ix setIx'.units.non [].to length ^. non (-1))
+
 type BlockModifier   = Modifier
+type BlockName       = Name
 type Modifier        = String
 type Name            = String
 type ParentName      = Name

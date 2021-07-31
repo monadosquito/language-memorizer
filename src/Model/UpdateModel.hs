@@ -7,7 +7,8 @@ module Model.UpdateModel
     ) where
 
 import Control.Lens ((%~), (&), (+~), (-~), (.~), (^.), (^..), (^?), _1, _2)
-import Control.Lens.Combinators (_head, each, filtered, ifiltered, ix, non, to, withIndex)
+import Control.Lens.Combinators (_head, ifiltered, ix, non, each, filtered, to, withIndex)
+import Control.Lens.Extras (is)
 import Control.Lens.Prism (_Just)
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Control.Lens.Traversal (traversed)
@@ -16,7 +17,7 @@ import Data.Maybe (listToMaybe)
 import Language.Javascript.JSaddle ((!), (#), jsg, valToNumber)
 import Miso.String (ms)
 
-import Utils (formData, pagesCount)
+import Utils (formData, listedStep, pagesCount, setResultsIsDone)
 
 import qualified Miso as M
 
@@ -31,6 +32,8 @@ makeFieldsNoPrefix ''MM.Model
 makeFieldsNoPrefix ''MM.Pages
 makeFieldsNoPrefix ''MM.Pagination
 makeFieldsNoPrefix ''MM.Set
+makeFieldsNoPrefix ''MM.SetResult
+makeFieldsNoPrefix ''MM.SetResultStep
 makeFieldsNoPrefix ''MM.Settings
 makeFieldsNoPrefix ''MM.Unit
 
@@ -131,10 +134,17 @@ updateModel (MA.EditSet editedUnitPart unitIx' editedUnitPartVal)    model = M.n
             ])
         else model)
     zeroUnit      = MM.Unit (ms "") []
-updateModel MA.FailMemorizingStep                                    model = M.noEff
-    $ model
-        &memorizing.pause .~ True
-        &memorizing.progress %~ (++ [ False ])
+updateModel MA.FailMemorizingStep                                    model = (model
+    &memorizing.pause .~ True
+    &memorizing.progress %~ (++ [ False ])
+    &statistics .~ newStatistics
+    ) M.<# (M.setLocalStorage (ms "statistics") newStatistics >> pure MA.DoNothing)
+  where
+    memorizing'   = model ^. memorizing
+    newStatistics = model
+        ^. statistics&_head.traversed
+            .filtered ((== memorizing' ^. setIx) . (^. setIx)).steps
+        %~ (++ [ MM.SetResultStep False $ memorizing' ^. unitIx ])
 updateModel (MA.HandleUri uri')                                      model =
     M.noEff $ model&uri .~ uri'
 updateModel (MA.RefreshSet setIx')                                   model = (model
@@ -146,17 +156,26 @@ updateModel MA.RepeatMemorizing                                      model = (mo
     &memorizing.answer .~ ms ""
     &memorizing.initLiteSetsLen .~ liteSets' ^.. each.unitIxs.each ^. to length
     &memorizing.liteSets .~ liteSets'
-    &memorizing.progress .~ [])
-        M.<# pure MA.SelectRandomMemorizingUnit
+    &memorizing.progress .~ []
+    &statistics %~ (\statistics' ->
+        if is _Just activeSetIxs'
+        then
+            if setResultsIsDone model
+            then setResults : statistics'
+            else setResults : tail statistics'
+        else statistics'))
+    M.<# pure MA.SelectRandomMemorizingUnit
   where
-    liteSets' = (model
+    activeSetIxs' = model ^. settings.activeSetIxs
+    liteSets'     = (model
         ^.. sets.traversed.ifiltered
-            (\setIx_ set_ ->
-                elem (show setIx_) (model ^? settings.activeSetIxs._Just ^. non [])
-                    && (not . null $ set_ ^? units._Just ^. non []))
+            (\setIx' set' ->
+                elem (show setIx') (model ^? settings.activeSetIxs._Just ^. non [])
+                    && (not . null $ set' ^? units._Just ^. non []))
             .withIndex)
-        ^.. traversed.to (\(setIx_, set_) ->
-            MM.LiteSet setIx_ [ 0..set_ ^. units.non [].to ((subtract 1) . length) ])
+        ^.. traversed.to (\(setIx', set') ->
+            MM.LiteSet setIx' [ 0..set' ^. units.non [].to ((subtract 1) . length) ])
+    setResults    = activeSetIxs' ^.. _Just.each.to ((`MM.SetResult` []) . read)
 updateModel MA.SaveSet                                               model = (model
     &editedSet.ixedUnits .~ []
     &sets.ix activeSetIx'.units._Just .~ model
@@ -221,6 +240,24 @@ updateModel (MA.SwitchPage MA.Previous MA.Sets)                      model = M.n
     if model ^. pagination.sets.current == 0
     then model
     else model&pagination.sets.current -~ 1
+updateModel (MA.SwitchPage MA.First MA.Statistics)                   model =
+    M.noEff $ model&pagination.statistics.current .~ 0
+updateModel (MA.SwitchPage (MA.Jump page) MA.Statistics)             model =
+    M.noEff $ model&pagination.statistics.current .~ page
+updateModel (MA.SwitchPage MA.Last MA.Statistics)                    model =
+    M.noEff
+        $ model
+            &pagination.statistics.current .~ model ^. pagination.sets.count.to
+                (subtract 1)
+updateModel (MA.SwitchPage MA.Next MA.Statistics)                    model =
+    M.noEff $ if model ^. pagination.statistics.current
+        < model ^. pagination.statistics.count.to (subtract 1)
+    then model&pagination.statistics.current +~ 1
+    else model
+updateModel (MA.SwitchPage MA.Previous MA.Statistics)                model =
+    M.noEff $ if model ^. pagination.statistics.current == 0
+    then model
+    else model&pagination.statistics.current -~ 1
 updateModel (MA.SwitchPage MA.First (MA.Units setIx'))               model =
     (model&pagination.units.ix setIx'.current .~ 0) M.<# pure (MA.RefreshSet setIx')
 updateModel (MA.SwitchPage (MA.Jump page) (MA.Units setIx'))         model =
@@ -242,39 +279,45 @@ updateModel (MA.SwitchPage MA.Previous (MA.Units setIx'))            model =
 updateModel MA.ToggleMenuVisibility                                  model =
     (model&menuIsVisible %~ not)
         M.<# ((M.getBody ! "classList" # "toggle" $ [ "covered" ]) >> pure MA.DoNothing)
-updateModel (MA.UpdateMemorizing liteSetIx' tmpUnitIx' translateIx') model =
-    (model&memorizing .~ newMemorizing)
-        M.<# (M.setLocalStorage (ms "memorizing") newMemorizing >> pure MA.DoNothing)
+updateModel (MA.UpdateMemorizing liteSetIx' tmpUnitIx' translateIx') model = (model
+    &memorizing .~ newMemorizing
+    &statistics .~ newStatistics
+    ) M.<# do
+        M.setLocalStorage (ms "memorizing") newMemorizing
+        M.setLocalStorage (ms "statistics") newStatistics
+        pure . MA.UpdatePagination $ MA.Part MA.Statistics
   where
-    listedStep :: a -> [a]
-    listedStep step =
-        if memorizing' ^. initLiteSetsLen
-                == memorizing' ^.. liteSets.each.unitIxs.each ^. to length
-            || memorizing' ^. pause
-        then []
-        else [ step ]
     memorizing'   = model ^. memorizing
     newMemorizing = (memorizing'
         &answer .~ ms ""
         &liteSets.ix liteSetIx'.unitIxs %~ (^.. traversed.ifiltered
             (\tmpUnitIx'' _ -> tmpUnitIx'' /= tmpUnitIx'))
         &pause .~ False
-        &progress %~ (++ listedStep True)
+        &progress %~ (++ listedStep memorizing' True)
         &setIx .~ memorizing'
             ^? liteSets.ix liteSetIx' ^. non (MM.LiteSet (-1) []).setIx
         &translateIx .~ translateIx'
         &unitIx .~ memorizing'
             ^? liteSets.ix liteSetIx'.unitIxs.ix tmpUnitIx' ^. non (-1))
         &liteSets %~ (^.. traversed.filtered ((not . null) . (^. unitIxs)))
+    newStatistics = model ^. statistics&_head.traversed
+            .filtered ((== memorizing' ^. setIx) . (^. setIx)).steps
+        %~ (++ (listedStep memorizing' . MM.SetResultStep True $ memorizing' ^. unitIx))
 updateModel (MA.UpdatePagination (MA.Part MA.Sets))                  model = M.noEff
     $ model
         &pagination.sets.count .~ (pagesCount (model ^. settings.setsPageCount.to read)
             $ (model ^. sets.to length))
         &pagination.units %~ (++ [ MM.Pages 0 0 ])
+updateModel (MA.UpdatePagination (MA.Part MA.Statistics))            model = M.noEff
+    $ model
+        &pagination.statistics.count .~ (pagesCount
+            (model ^. settings.statisticsPageCount.to read)
+            $ (model ^. statistics.to length))
 updateModel (MA.UpdatePagination (MA.Part (MA.Units setIx')))        model = M.noEff
-    $ model&pagination.units.ix setIx'.count .~ (pagesCount
-        (model ^. settings.unitsPageCount.to read)
-        $ (model ^? sets.ix setIx'.units._Just.to length) ^. non (-1))
+    $ model
+        &pagination.units.ix setIx'.count .~ (pagesCount
+            (model ^. settings.unitsPageCount.to read)
+            $ (model ^? sets.ix setIx'.units._Just.to length) ^. non (-1))
 updateModel (MA.UpdatePagination MA.Whole)                           model =
     (model&pagination.units.traversed.withIndex %~ (\setPages@(setIx', _) ->
             setPages&_2.count .~ (pagesCount (model ^. settings.unitsPageCount.to read)

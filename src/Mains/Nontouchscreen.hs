@@ -58,10 +58,13 @@ main = runApp $ do
         $ ms "memorizing" :: M.JSM (Either String MM.Memorizing)
     sets' <- M.getLocalStorage $ ms "sets" :: M.JSM (Either String [MM.Set])
     settings' <- M.getLocalStorage $ ms "settings" :: M.JSM (Either String MM.Settings)
+    statistics' <- M.getLocalStorage
+        $ ms "statistics" :: M.JSM (Either String [[MM.SetResult]])
     uri <- M.getCurrentURI
     let
-        sets     = sets' ^? CLC._Right ^. CLC.non []
-        settings = settings' ^? CLC._Right ^. CLC.non defaultSettings
+        sets       = sets' ^? CLC._Right ^. CLC.non []
+        settings   = settings' ^? CLC._Right ^. CLC.non defaultSettings
+        statistics = statistics' ^? CLC._Right ^. CLC.non []
     M.startApp M.App
         { events        = M.defaultEvents
         , initialAction =
@@ -84,19 +87,23 @@ main = runApp $ do
                 })
             , _menuIsVisible = False
             , _pagination    = MM.Pagination
-                { _sets  = MM.Pages 0 . pagesCount
+                { _sets       = MM.Pages 0 . pagesCount
                     (settings ^. setsPageCount.CLC.to read)
                     $ sets ^. CLC.to length
-                , _units = sets
+                , _statistics = MM.Pages 0 . pagesCount
+                    (settings ^. statisticsPageCount.CLC.to read)
+                    $ statistics ^. CLC.to length
+                , _units      = sets
                     ^.. CLC.each.units.CLC.non [].CLC.to
                         ( MM.Pages 0
                         . (pagesCount $ settings ^. unitsPageCount.CLC.to read)
                         . length
                         )
                 }
-            , _sets        = sets
-            , _settings    = settings
-            , _uri         = uri
+            , _sets          = sets
+            , _settings      = settings
+            , _statistics    = statistics
+            , _uri           = uri
             }
         , mountPoint    = Nothing
         , subs          = [ M.uriSub MA.HandleUri ]
@@ -105,8 +112,9 @@ main = runApp $ do
         }
   where
     defaultSettings = MM.Settings
-        { _activeSetIxs   = Nothing
-        , _memorizingMode = MM.Text
-        , _setsPageCount  = "42"
-        , _unitsPageCount = "42"
+        { _activeSetIxs        = Nothing
+        , _memorizingMode      = MM.Text
+        , _setsPageCount       = "42"
+        , _statisticsPageCount = "1"
+        , _unitsPageCount      = "42"
         }

@@ -11,7 +11,9 @@ module Model.Model
     , Model          (..)
     , Pages          (..)
     , Pagination     (..)
+    , SetResultStep  (..)
     , Set            (..)
+    , SetResult      (..)
     , Settings       (..)
     , Unit           (..)
     ) where
@@ -20,8 +22,6 @@ import Data.Aeson (FromJSON (), ToJSON ())
 import GHC.Generics (Generic ())
 import Miso (URI ())
 import Miso.String (MisoString ())
-
-import Utils (SetIx (), UnitIx ())
 
 
 data EditedSet = EditedSet
@@ -47,8 +47,11 @@ data Model = Model
     , _pagination    :: Pagination
     , _sets          :: [Set]
     , _settings      :: Settings
+    , _statistics    :: [[SetResult]]
     , _uri           :: URI
     } deriving stock (Eq, Show)
+type SetIx  = Int
+type UnitIx = Int
 
 data Memorizing = Memorizing
     { _answer          :: MisoString
@@ -67,20 +70,32 @@ data Pages = Pages
     } deriving stock (Eq, Show)
 
 data Pagination = Pagination
-    { _sets  :: Pages
-    , _units :: [Pages]
+    { _sets       :: Pages
+    , _statistics :: Pages
+    , _units      :: [Pages]
     } deriving stock (Eq, Show)
+
+data SetResultStep = SetResultStep
+    { _success :: Bool
+    , _unitIx  :: Int
+    } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
 
 data Set = Set
     { _name  :: MisoString
     , _units :: Maybe [Unit]
     } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
 
+data SetResult = SetResult
+    { _setIx :: Int
+    , _steps :: [SetResultStep]
+    } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
+
 data Settings = Settings
-    { _activeSetIxs   :: Maybe [String]
-    , _memorizingMode :: MemorizingMode
+    { _activeSetIxs        :: Maybe [String]
+    , _memorizingMode      :: MemorizingMode
     , _setsPageCount
-    , _unitsPageCount :: String
+    , _statisticsPageCount
+    , _unitsPageCount      :: String
     } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
 
 data Unit = Unit

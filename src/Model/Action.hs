@@ -57,6 +57,6 @@ data MemorizingMode = Text' | Translates deriving stock (Eq, Show)
 
 data PageSwitchWay = First | Jump Page | Last | Next | Previous deriving stock (Eq, Show)
 
-data Paginated = Sets | Units SetIx deriving stock (Eq, Show)
+data Paginated = Sets | Statistics | Units SetIx deriving stock (Eq, Show)
 
 data PaginationUpdatingWay = Whole | Part Paginated deriving stock (Eq, Show)

@@ -9,7 +9,7 @@ import Miso (View (), button_, class_, div_, footer_, onClick, type_, value_)
 import Model.Action (Action (ToggleMenuVisibility))
 import Utils (BemClass (BemClass), bemClass)
 import Views.Dumb.Link.Common (link)
-import Views.Smart.Router.Utils (goMemorizing, goSets)
+import Views.Smart.Router.Utils (goMemorizing, goStatistics)
 
 
 footer :: BemClass -> View Action
@@ -19,7 +19,7 @@ footer bemClass' = footer_
     [ div_
         [ class_ . bemClass "Item" $ BemClass "Footer" [] []
         ]
-        [ link (BemClass "Footer" [] []) goSets "Sets"
+        [ link (BemClass "Footer" [] []) goStatistics "Statistics"
         ]
     , div_
         [ class_ . bemClass "Item" $ BemClass "Footer" [] []

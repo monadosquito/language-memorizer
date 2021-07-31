@@ -1,0 +1,62 @@
+.Statistics
+  display: flex
+  flex-flow: column
+  gap: 2vh
+  justify-content: space-between
+  height: 100%
+  padding: 2vh 4vw
+
+  &-Form
+    background: linear-gradient(#610c04, #C21807)
+    border-radius: 0
+
+    &_succeeded
+      background: linear-gradient(#215708, #43AF11)
+
+    &:first-child
+      border-top-left-radius: 8px
+      border-top-right-radius: 8px
+
+    &:last-child
+      border-bottom-left-radius: 8px
+      border-bottom-right-radius: 8px
+
+    & > .FieldList
+      padding-left: 10vw
+
+      & .FormField
+        display: inline-block
+        width: 100%
+
+  &-PageSwitcher
+    border-bottom-left-radius: 8px
+    border-bottom-right-radius: 8px
+
+  &-SetResultList
+    border-radius: 0px
+    list-style: none
+    padding: 2vh 4vw
+
+  &-SetResultListList
+    background: #F2DFD7
+    border-radius: 8px
+    flex: 1
+    list-style: none
+    margin: 0
+    padding: 2vh 4vw
+
+    &_paginated
+      border-bottom-left-radius: 0 
+      border-bottom-right-radius: 0
+
+  &-SetResults
+    background: #D4C1EC
+    border-radius: 8px
+
+    &_undone
+      background: linear-gradient(#C21807, #610c04)
+      border-radius: 8px
+
+  &-StepList
+    list-style: none
+    padding: 0

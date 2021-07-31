@@ -99,6 +99,14 @@ settings' bemClass' model = M.main_
         , M.label_ []
             [ M.input_
                 [ M.class_ . bemClass "FormField" $ BemClass "Form" [] []
+                , M.name_ "_statisticsPageCount"
+                , M.value_ $ model ^. settings.statisticsPageCount.to ms
+                ]
+            , M.text "Statistics page count"
+            ]
+        , M.label_ []
+            [ M.input_
+                [ M.class_ . bemClass "FormField" $ BemClass "Form" [] []
                 , M.name_ "_unitsPageCount"
                 , M.value_ $ model ^. settings.unitsPageCount.to ms
                 ]
