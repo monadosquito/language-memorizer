@@ -12,8 +12,8 @@ import Control.Lens.TH (makeFieldsNoPrefix)
 
 import Model.Action (Action (AddSet, DeleteSet), Paginated (Sets))
 import Model.Model (Model (), Pages (), Pagination (), Set (), Settings ())
-import Utils (BemClass (BemClass), bemClass, paginate)
-import Views.Dumb.PageSwitcher.Common (pageSwitcher)
+import Utils (BemClass (BemClass), bemClass, darkMode', paginate)
+import Views.Smart.PageSwitcher.Common (pageSwitcher)
 import Views.Smart.Router.Utils (goSet)
 
 import qualified Miso as M
@@ -42,7 +42,7 @@ sets' bemClass' model = M.main_
                 [ M.text $ set' ^. name
                 ]
             , M.input_
-                [ M.class_ . bemClass "Button" $ BemClass "Sets" [] []
+                [ M.class_ . bemClass "Button" $ BemClass "Sets" [ darkMode' model ] []
                 , M.onClick $ DeleteSet setIx
                 , M.type_ "button"
                 , M.value_ "-"
@@ -53,9 +53,13 @@ sets' bemClass' model = M.main_
             (model ^. settings.setsPageCount.to read)
         . zip [ 0..model ^. sets.to (subtract 1 . length) ]
         $ model ^. sets
-    , pageSwitcher (BemClass "Sets" [] []) Sets $ model ^. pagination.sets.count
+    , pageSwitcher
+        (BemClass "Sets" [ darkMode' model ] [])
+        Sets (model ^. pagination.sets.count)
+        model
     , M.form_
-        [ M.class_ . bemClass "Form" $ BemClass "Sets" [ "inline" ] [ "inline" ]
+        [ M.class_ . bemClass "Form"
+            $ BemClass "Sets" [ "inline", darkMode' model ] [ "inline" ]
         , M.data_ "mark" "add-set-form"
         , M.onSubmit AddSet
         ]
@@ -65,7 +69,7 @@ sets' bemClass' model = M.main_
             , M.placeholder_ "Set name"
             ]
         , M.input_
-            [ M.class_ . bemClass "Button" $ BemClass "Sets" [] []
+            [ M.class_ . bemClass "Button" $ BemClass "Sets" [ darkMode' model ] []
             , M.type_ "submit"
             , M.value_ "+"
             ]

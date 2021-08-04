@@ -5,6 +5,21 @@
   overflow: auto
   font-size: 1.2rem
 
+  &_darkMode
+    background: repeating-radial-gradient(circle at 20% 100%, #2C3D55 50.5%, #3E4C5E 51%, #2C3D55 51.5%, #2C3D55 65%)
+    color: #84828F
+
+    .Home
+      &-BundleListItem
+        &::-webkit-details-marker
+          color: #6A687A
+
+      &-ListItem_nonbundled:before
+        color: #6A687A
+
+      &-Title
+        color: #6A687A
+
   &-BundleListItem
     &::-webkit-details-marker
       color: #736CED

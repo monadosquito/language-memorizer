@@ -13,6 +13,7 @@ module Utils
     , SetIx           ()
     , UnitIx          ()
     , bemClass
+    , darkMode'
     , formData
     , listedStep
     , pagesCount
@@ -29,13 +30,14 @@ import Language.Javascript.JSaddle (eval)
 import Miso.String (MisoString (), ms)
 import Miso (JSM (), parse)
 
-import Model.Model (LiteSet (), Memorizing (), Model (), Set (), SetResult (SetResult))
+import qualified Model.Model as MM
 
 
-makeFieldsNoPrefix ''LiteSet
-makeFieldsNoPrefix ''Memorizing
-makeFieldsNoPrefix ''Model
-makeFieldsNoPrefix ''Set
+makeFieldsNoPrefix ''MM.LiteSet
+makeFieldsNoPrefix ''MM.Memorizing
+makeFieldsNoPrefix ''MM.Model
+makeFieldsNoPrefix ''MM.Set
+makeFieldsNoPrefix ''MM.Settings
 
 data BemClass
     = BemClass ParentName [BlockModifier] [ElementModifier]
@@ -51,6 +53,9 @@ bemModifiers :: Name -> [Modifier] -> String
 bemModifiers _     []         = ""
 bemModifiers name' modifiers  =
     ' ' : (unwords . map ((name' ++ "_") ++) . filter (not . null) $ modifiers)
+
+darkMode' :: MM.Model -> String
+darkMode' model = model ^. settings.darkMode.to (maybe "" $ const "darkMode")
 
 formData :: FromJSON a => FormMark -> Reseting -> JSM [a]
 formData formMark reseting = parse =<< eval js
@@ -77,7 +82,7 @@ formData formMark reseting = parse =<< eval js
         \ "
 type Reseting = Bool
 
-listedStep :: Memorizing -> a -> [a]
+listedStep :: MM.Memorizing -> a -> [a]
 listedStep memorizing' step =
     if memorizing' ^. initLiteSetsLen
             == memorizing' ^.. liteSets.each.unitIxs.each ^. to length
@@ -96,9 +101,9 @@ paginate :: Page -> PagesCount -> [a] -> [a]
 paginate _    0           xs = xs
 paginate page pagesCount' xs = take pagesCount' $ drop (page * pagesCount') xs
 
-setResultsIsDone :: Model -> Bool
+setResultsIsDone :: MM.Model -> Bool
 setResultsIsDone model =
-    and $ model ^? statistics._head.traversed.to (\(SetResult setIx' steps') ->
+    and $ model ^? statistics._head.traversed.to (\(MM.SetResult setIx' steps') ->
         steps' ^. to length == model ^? sets.ix setIx'.units.non [].to length ^. non (-1))
 
 type BlockModifier   = Modifier

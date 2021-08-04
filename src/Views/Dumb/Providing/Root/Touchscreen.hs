@@ -13,9 +13,9 @@ import Miso (View (), class_, div_)
 
 import Model.Action (Action ())
 import Model.Model (Model ())
-import Utils (BemClass (BemClass))
+import Utils (BemClass (BemClass), darkMode')
 import Views.Dumb.ActivePage.Common (activePage)
-import Views.Dumb.Footer.Common (footer)
+import Views.Dumb.Providing.Footer.Common (footer)
 import Views.Dumb.Link.Common (link)
 import Views.Dumb.Menu.Common (menu)
 import Views.Smart.Router.Common (router)
@@ -28,12 +28,13 @@ root :: Model -> View Action
 root model = div_
     [ class_ "Root"
     ]
-    [ activePage (BemClass "Root" [] []) $ router model
+    [ activePage (BemClass "Root" [ darkMode' model ] []) $ router model
     , menu
-        (BemClass "Root" [] [ if model ^. menuIsVisible then "visible" else "" ])
-        [ link (BemClass "Root" [] []) goHome "Home"
-        , link (BemClass "Root" [] []) goSettings "Settings"
-        , link (BemClass "Root" [] []) goSets "Sets"
+        (BemClass "Root" [ darkMode' model ]
+            $ if model ^. menuIsVisible then [ "visible" ] else [])
+        [ link (BemClass "Root" [ darkMode' model ] []) goHome "Home"
+        , link (BemClass "Root" [ darkMode' model ] []) goSettings "Settings"
+        , link (BemClass "Root" [ darkMode' model ] []) goSets "Sets"
         ]
-    , footer $ BemClass "Root" [] []
+    , footer (BemClass "Root" [ darkMode' model ] []) model
     ]

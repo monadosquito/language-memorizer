@@ -13,8 +13,8 @@ import Control.Lens.Combinators (_Just, ix, non, to)
 import Control.Lens.TH (makeFieldsNoPrefix)
 
 import Model.Action (Action (), Paginated (Statistics))
-import Views.Dumb.PageSwitcher.Common (pageSwitcher)
-import Utils (BemClass (BemClass), bemClass, paginate, setResultsIsDone)
+import Views.Smart.PageSwitcher.Common (pageSwitcher)
+import Utils (BemClass (BemClass), bemClass, darkMode', paginate, setResultsIsDone)
 
 import qualified Miso as M
 
@@ -72,7 +72,7 @@ statistics' bemClass_ model = M.main_
                                 in M.li_
                                     [ M.class_ . bemClass "Form" $ BemClass
                                         "Statistics"
-                                        []
+                                        [ darkMode' model ]
                                         [ if success' then "succeeded" else "" ]
                                     ]
                                     [ M.span_
@@ -101,8 +101,11 @@ statistics' bemClass_ model = M.main_
             ])
         paginatedStatistics
         [ 0..length paginatedStatistics - 1 ]
-    , pageSwitcher (BemClass "Statistics" [] []) Statistics
-        $ model ^. pagination.statistics.count
+    , pageSwitcher
+        (BemClass "Statistics" [ darkMode' model ] [])
+        Statistics
+        (model ^. pagination.statistics.count)
+        model
     ]
   where
     paginatedStatistics = paginate

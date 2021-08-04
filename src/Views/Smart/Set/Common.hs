@@ -13,8 +13,8 @@ import Control.Lens.Combinators (_2, _Just, _head, filtered, ix, non, to, traver
 
 import Model.Action (Action (AddUnit))
 import Model.Model (Model (), Set (Set), Unit ())
-import Utils (BemClass (BemClass), SetIx (), UnitIx (), bemClass, paginate)
-import Views.Dumb.PageSwitcher.Common (pageSwitcher)
+import Utils (BemClass (BemClass), SetIx (), UnitIx (), bemClass, darkMode', paginate)
+import Views.Smart.PageSwitcher.Common (pageSwitcher)
 
 import qualified Miso as M
 
@@ -40,7 +40,7 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
         , M.id_ "editUnitFormsContainer"
         ]
         (map (\(unitIx, unit) -> unitForm
-            (BemClass "Set" [] [])
+            (BemClass "Set" [ darkMode' model ] [])
             ( unitIx
             , model
                 ^.. editedSet.ixedUnits.traversed.filtered
@@ -52,17 +52,21 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
             (model ^? pagination.units.ix setIx'.current ^. non (-1))
             (model ^. settings.unitsPageCount.to read)
         $ set' ^.. units._Just.traversed.withIndex)
-    , pageSwitcher (BemClass "Set" [] []) (MA.Units setIx')
-        $ model ^? pagination.units.ix setIx'.count ^. non (-1)
+    , pageSwitcher
+        (BemClass "Set" [ darkMode' model ] [])
+        (MA.Units setIx')
+        (model ^? pagination.units.ix setIx'.count ^. non (-1))
+        model
     , M.div_
-        [ M.class_ . bemClass "Form" $ BemClass "Set" [ "inline" ] [ "bottom" ]
+        [ M.class_ . bemClass "Form"
+            $ BemClass "Set" [ "inline", darkMode' model ] [ "bottom" ]
         ]
         [ M.input_
             [ M.class_ . bemClass "Button"
                 $ BemClass
                     "Set"
-                    [
-                        if null (model ^. editedSet.ixedUnits)
+                    [ darkMode' model
+                    , if null (model ^. editedSet.ixedUnits)
                             && model ^. editedSet.name == model ^. sets.ix setIx'.name
                         then "inactive"
                         else ""
@@ -79,7 +83,7 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
             , M.value_ $ model ^. editedSet.name
             ]
         , M.input_
-            [ M.class_ . bemClass "Button" $ BemClass "Set" [] []
+            [ M.class_ . bemClass "Button" $ BemClass "Set" [ darkMode' model ] []
             , M.onClick AddUnit
             , M.type_ "button"
             , M.value_ "+"
@@ -111,7 +115,8 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
                         , M.value_ translate
                         ]
                     , M.input_
-                        [ M.class_ . bemClass "Button" $ BemClass "Form" [] [ "tangent" ]
+                        [ M.class_ . bemClass "Button"
+                            $ BemClass "Form" [ darkMode' model ] [ "tangent" ]
                         , M.data_ "mark" "delete-translate"
                         , M.onClick $ MA.DeleteTranslate unitIx translateIx
                         , M.type_ "button"
@@ -120,13 +125,14 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
                     ])
             $ unit ^.. translates.traversed.withIndex
         , M.input_
-            [ M.class_ . bemClass "Button" $ BemClass "Form" [] [ "under" ]
+            [ M.class_ . bemClass "Button"
+                $ BemClass "Form" [ darkMode' model ] [ "under" ]
             , M.onClick $ MA.AddTranslate unitIx 
             , M.type_ "button"
             , M.value_ "+"
             ]
         , M.input_
-            [ M.class_ . bemClass "Button" $ BemClass "Form" [] []
+            [ M.class_ . bemClass "Button" $ BemClass "Form" [ darkMode' model ] []
             , M.data_ "mark" "delete-unit"
             , M.onClick $ MA.DeleteUnit unitIx
             , M.type_ "button"

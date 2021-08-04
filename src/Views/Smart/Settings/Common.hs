@@ -14,7 +14,7 @@ import Miso.String (ms)
 
 import Model.Action (Action (SaveSettings))
 import Model.Model (MemorizingMode (..), Model (), Set (), Settings ())
-import Utils (BemClass (BemClass), bemClass)
+import Utils (BemClass (BemClass), bemClass, darkMode')
 
 import qualified Miso as M
 
@@ -28,7 +28,7 @@ settings' bemClass' model = M.main_
     [ M.class_ $ bemClass "Settings" bemClass'
     ]
     [ M.form_
-        [ M.class_ . bemClass "Form" $ BemClass "Settings" [] []
+        [ M.class_ . bemClass "Form" $ BemClass "Settings" [ darkMode' model ] []
         , M.data_ "mark" "edit-settings-form"
         , M.onSubmit SaveSettings
         ]
@@ -53,6 +53,14 @@ settings' bemClass' model = M.main_
                 )
                 $ model ^.. sets.traversed.withIndex
             , M.text "Active sets"
+            ]
+        , M.label_ []
+            [ M.input_
+                [ M.checked_ . maybe False (const True) $ model ^. settings.darkMode
+                , M.name_ "_darkMode"
+                , M.type_ "checkbox"
+                ]
+            , M.text "Dark mode"
             ]
         , M.label_ []
             [ M.select_
@@ -113,7 +121,7 @@ settings' bemClass' model = M.main_
             , M.text "Units page count"
             ]
         , M.input_
-            [ M.class_ . bemClass "Button" $ BemClass "Settings" [] []
+            [ M.class_ . bemClass "Button" $ BemClass "Settings" [ darkMode' model ] []
             , M.type_ "submit"
             , M.value_ "Save"
             ]

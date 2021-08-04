@@ -92,6 +92,7 @@ data SetResult = SetResult
 
 data Settings = Settings
     { _activeSetIxs        :: Maybe [String]
+    , _darkMode            :: Maybe String
     , _memorizingMode      :: MemorizingMode
     , _setsPageCount
     , _statisticsPageCount

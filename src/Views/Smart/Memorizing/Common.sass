@@ -6,6 +6,23 @@
   height: 100%
   padding: 2vh 4vw
 
+  &_darkMode
+    background: #2C3D55
+    color: #84828F
+
+    .Memorizing
+      &-Bar
+        background: #3E4C5E
+
+        .Bar-Segment
+          background: #84828F 
+
+      &-ControlPanel
+        background: #3E4C5E
+        
+      &-Text
+        background: #3E4C5E
+
   &-Bar
     flex-basis: 6%
 
@@ -54,7 +71,7 @@
       border-top-right-radius: 8px
 
     &_failed
-      background: linear-gradient(#610c04, #C21807)
+      background: linear-gradient(#610c04, #C21807) !important
 
     &_succeeded
-      background: linear-gradient(#215708, #43AF11)
+      background: linear-gradient(#215708, #43AF11) !important

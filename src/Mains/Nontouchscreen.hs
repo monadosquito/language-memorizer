@@ -113,6 +113,7 @@ main = runApp $ do
   where
     defaultSettings = MM.Settings
         { _activeSetIxs        = Nothing
+        , _darkMode            = Just "False"
         , _memorizingMode      = MM.Text
         , _setsPageCount       = "42"
         , _statisticsPageCount = "1"

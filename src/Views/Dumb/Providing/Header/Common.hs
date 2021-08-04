@@ -14,17 +14,17 @@ import Views.Smart.Router.Utils (goHome, goMemorizing, goSets, goSettings, goSta
 
 
 header :: BemClass -> Model -> View Action
-header bemClass' model = header_
-    [ class_ $ bemClass "Header" bemClass'
+header bemClass_ model = header_
+    [ class_ $ bemClass "Header" bemClass_
     ]
     [ nav_
         [ class_ . bemClass "LinkList" $ BemClass "Header" [] []
         ]
         [ link (BemClass "Header" [] []) goHome "Home"
-        , link (BemClass "Menu" [ darkMode_ model ] []) goMemorizing "Memorizing"
-        , link (BemClass "Menu" [ darkMode_ model ] []) goStatistics "Statistics"
-        , link (BemClass "Menu" [ darkMode_ model ] []) goSettings "Settings"
-        , link (BemClass "Menu" [ darkMode_ model ] []) goSets "Sets"
+        , link (BemClass "Menu" [ darkMode' model ] []) goMemorizing "Memorizing"
+        , link (BemClass "Menu" [ darkMode' model ] []) goStatistics "Statistics"
+        , link (BemClass "Menu" [ darkMode' model ] []) goSettings "Settings"
+        , link (BemClass "Menu" [ darkMode' model ] []) goSets "Sets"
         ]
     ]
 

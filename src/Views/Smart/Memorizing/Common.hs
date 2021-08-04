@@ -12,7 +12,7 @@ import Control.Lens.Combinators (_Just, ix, non, to)
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Miso.String (ms)
 
-import Utils (BemClass (BemClass), ElementModifier (), bemClass)
+import Utils (BemClass (BemClass), ElementModifier (), bemClass, darkMode')
 
 import qualified Miso as M
 
@@ -65,7 +65,8 @@ memorizing' bemClass' model = M.main_
                 $ BemClass "Memorizing" [] [ maybe "done" (const "") maybeUnit ]
             ]
             ([ M.input_
-                [ M.class_ . bemClass "Button" $ BemClass "Memorizing" [] []
+                [ M.class_ . bemClass "Button"
+                    $ BemClass "Memorizing" [ darkMode' model ] []
                 , M.onClick MA.RepeatMemorizing
                 , M.type_ "button"
                 , M.value_ "Repeat"
@@ -83,7 +84,7 @@ memorizing' bemClass' model = M.main_
     continueBtn inactive memorizing''' model' = M.input_
         [ M.class_ . bemClass "Button"
             $ BemClass "Memorizing"
-                [ if inactive then "inactive" else "" ]
+                [ darkMode' model, if inactive then "inactive" else "" ]
                 []
         , M.onClick
             $ if inactive
@@ -109,7 +110,7 @@ memorizing' bemClass' model = M.main_
 
     showBtn :: MA.Action -> M.View MA.Action
     showBtn act = M.input_
-        [ M.class_ . bemClass "Button" $ BemClass "Memorizing" [] []
+        [ M.class_ . bemClass "Button" $ BemClass "Memorizing" [ darkMode' model ] []
         , M.onClick act
         , M.type_ "button"
         , M.value_ "Show"
@@ -126,7 +127,7 @@ memorizing' bemClass' model = M.main_
                     ^. non "".to ms
             ]
         , M.form_
-            [ M.class_ . bemClass "Form" $ BemClass "Memorizing" [] []
+            [ M.class_ . bemClass "Form" $ BemClass "Memorizing" [ darkMode' model ] []
             ]
             [ M.input_
                 [ M.class_ . bemClass "FormField" $ BemClass "Form" [] []

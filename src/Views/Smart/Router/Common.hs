@@ -15,7 +15,7 @@ import Servant.API ((:<|>) ((:<|>)))
 
 import Model.Action (Action ())
 import Model.Model (LiteSet (), Memorizing (), Model (_uri), Settings ())
-import Utils (BemClass (BemClass))
+import Utils (BemClass (BemClass), darkMode')
 import Views.Dumb.Home.Common (home)
 import Views.Smart.Memorizing.Common (memorizing')
 import Views.Smart.Router.Utils (routes)
@@ -31,19 +31,19 @@ makeFieldsNoPrefix ''Model
 makeFieldsNoPrefix ''Settings
 
 router :: Model -> View Action
-router model = either (const . home $ BemClass "ActivePage" [] []) id
+router model = either (const . home $ BemClass "ActivePage" [ darkMode' model ] []) id
     $ runRoute routes pages _uri model
   where
     memorizing'' = model ^. memorizing
 
     pages
-       =    const (home $ BemClass "ActivePage" [] [])
-       :<|> memorizing' (BemClass "ActivePage" [] [])
+       =    const (home $ BemClass "ActivePage" [ darkMode' model ] [])
+       :<|> memorizing' (BemClass "ActivePage" [ darkMode' model ] [])
        :<|> (\setIx' -> set
         (BemClass
             "ActivePage"
-            [
-                if model ^. settings.activeSetIxs.non [].to (elem setIx' . map read)
+            [ darkMode' model
+            , if model ^. settings.activeSetIxs.non [].to (elem setIx' . map read)
                 && length (memorizing'' ^.. liteSets.each.unitIxs)
                     < memorizing'' ^. initLiteSetsLen
                 then "memorized"
@@ -51,6 +51,6 @@ router model = either (const . home $ BemClass "ActivePage" [] []) id
             ]
             [])
         setIx')
-       :<|> sets' (BemClass "ActivePage" [] [])
-       :<|> settings' (BemClass "ActivePage" [] [])
-       :<|> statistics' (BemClass "ActivePage" [] [])
+       :<|> sets' (BemClass "ActivePage" [ darkMode' model ] [])
+       :<|> settings' (BemClass "ActivePage" [ darkMode' model ] [])
+       :<|> statistics' (BemClass "ActivePage" [ darkMode' model ] [])
