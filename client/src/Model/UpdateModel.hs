@@ -6,6 +6,7 @@ module Model.UpdateModel
     ( updateModel
     ) where
 
+import Control.Concurrent (threadDelay)
 import Control.Lens ((%~), (&), (+~), (-~), (.~), (^.), (^..), (^?), _1, _2)
 import Control.Lens.Combinators (_head, ifiltered, ix, non, each, filtered, to, withIndex)
 import Control.Lens.Extras (is)
@@ -13,13 +14,15 @@ import Control.Lens.Prism (_Just)
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Control.Lens.Traversal (traversed)
 import Control.Monad (replicateM)
+import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (encode)
 import Data.Maybe (listToMaybe)
-import Language.Javascript.JSaddle ((!), (#), (<#), create, fun, jsg, jsg2, valToNumber, valToStr)
 import Miso.String (fromMisoString, ms)
+import System.Environment (getEnv)
 
 import Utils (formData, listedStep, pagesCount, setResultsIsDone)
 
+import qualified Language.Javascript.JSaddle as LJJ
 import qualified Miso as M
 
 import qualified Model.Model as MM
@@ -27,6 +30,7 @@ import qualified Model.Action as MA
 
 
 makeFieldsNoPrefix ''MM.EditedSet
+makeFieldsNoPrefix ''MM.LanguageMemorizer
 makeFieldsNoPrefix ''MM.LiteSet
 makeFieldsNoPrefix ''MM.Memorizing
 makeFieldsNoPrefix ''MM.Model
@@ -37,7 +41,6 @@ makeFieldsNoPrefix ''MM.SetResult
 makeFieldsNoPrefix ''MM.SetResultStep
 makeFieldsNoPrefix ''MM.Settings
 makeFieldsNoPrefix ''MM.Unit
-makeFieldsNoPrefix ''MM.LanguageMemorizer
 
 updateModel :: MA.Action -> MM.Model -> M.Effect MA.Action MM.Model
 updateModel MA.AddSet                                                model = model M.<# do
@@ -198,7 +201,7 @@ updateModel MA.SaveSettings                                          model = mod
     pure $ MA.UpdateSettings settings'
 updateModel MA.SelectRandomMemorizingUnit                            model = model M.<# do
     [ randomNum, randomNum1, randomNum2 ] <- replicateM 3
-        $ valToNumber =<< (jsg "Math" # "random" $ ())
+        $ LJJ.valToNumber =<< (LJJ.jsg "Math" LJJ.# "random" $ ())
     let
         liteSet      = model
             ^? memorizing.liteSets.ix liteSetIx' ^. non (MM.LiteSet (-1) [])
@@ -213,6 +216,8 @@ updateModel MA.SelectRandomMemorizingUnit                            model = mod
   where
     randomIx :: Double -> Int -> Int
     randomIx randomNum' length' = floor $ randomNum' * fromIntegral length'
+updateModel (MA.UpdateLanguageMemorizerName langMemorizerName')      model = M.noEff
+    $ model&langMemorizerName .~ Just langMemorizerName'
 updateModel (MA.ShowAnswer MA.Text')                                 model = (model
     &memorizing.answer .~ model
             ^? sets.ix (memorizing' ^. setIx).units._Just.ix (memorizing' ^. unitIx).text
@@ -231,42 +236,57 @@ updateModel (MA.ShowAnswer MA.Translates)                            model = (mo
 updateModel MA.SignIn                                                model = model M.<# do
     (langMemorizer':_) <- formData (ms "sign-in-form") True
         :: M.JSM [MM.LanguageMemorizer]
-    fetchOptions <- create
-    fetchOptions <# "body" $ ms $ encode langMemorizer'
-    fetchHeaders <- create
-    fetchHeaders <# "Content-Type" $ "application/json"
-    fetchOptions <# "headers" $ fetchHeaders
-    fetchOptions <# "method" $ "POST"
-    resp <- jsg2 "fetch" "http://localhost:8080/sign-in" fetchOptions
-    _ <- resp # "then"
-        $ fun $ \_ _ args -> do
-            case args of
-                [ resp1 ] -> do
-                    _ <- (resp1 # "text" $ ()) # "then" $ fun $ \_ _ args1 -> do
-                        case args1 of
-                            [ jsValAuthToken ] -> do
-                                authToken <- fromMisoString <$> valToStr jsValAuthToken
-                                _ <- jsg "localStorage" # "setItem"
-                                    $ [ "authToken", authToken ]
-                                pure ()
-                            _                  -> pure ()
-
-                    pure ()
-                _         -> pure ()
-            pure ()
-    pure MA.DoNothing
-updateModel MA.SignOut                                               model = model M.<#
-    (M.removeLocalStorage (ms "authToken") >> pure MA.DoNothing)
+    fetchOptions <- LJJ.create
+    fetchOptions LJJ.<# "body" $ ms $ encode langMemorizer'
+    fetchHeaders <- LJJ.create
+    fetchHeaders LJJ.<# "content-type" $ "application/json"
+    fetchOptions LJJ.<# "headers" $ fetchHeaders
+    fetchOptions LJJ.<# "method" $ "POST"
+    signInUrl <- liftIO $ getEnv "api_server_sign_in_url"
+    respPromise <- LJJ.jsg2 "fetch" signInUrl fetchOptions
+    _ <- respPromise LJJ.# "then" $ LJJ.fun $ \_ _ [ resp ] -> do
+        _ <- (resp LJJ.# "json" $ ()) LJJ.# "then"
+            $ LJJ.fun $ \_ _ [ jsValNameAndAuthToken ] -> do
+                langMemorizerIsSignedIn <- LJJ.valToBool $ resp LJJ.! "ok"
+                if langMemorizerIsSignedIn
+                    then do
+                        jsValAuthToken <- jsValNameAndAuthToken LJJ.! "1"
+                        authToken <- fromMisoString <$> LJJ.valToStr jsValAuthToken
+                        _ <- LJJ.jsg "localStorage" LJJ.# "setItem"
+                            $ [ "authToken", authToken ]
+                        jsValName <- jsValNameAndAuthToken LJJ.! "0"
+                        name' <- fromMisoString <$> LJJ.valToStr jsValName
+                        _ <- LJJ.jsg "localStorage" LJJ.# "setItem"
+                            $ [ "langMemorizerName", name' ]
+                        pure ()
+                    else pure ()
+        pure ()
+    liftIO $ threadDelay 1000000
+    jsValLangMemorizerName <- LJJ.jsg "localStorage" LJJ.# "getItem"
+        $ [ "langMemorizerName" ]
+    langMemorizerName' <- LJJ.valToStr jsValLangMemorizerName
+    jsValLangMemorizerNameIsNull <- LJJ.valIsNull jsValLangMemorizerName
+    pure
+        $ if jsValLangMemorizerNameIsNull
+        then MA.DoNothing
+        else MA.UpdateLanguageMemorizerName langMemorizerName' 
+updateModel MA.SignOut                                               model =
+    (model&langMemorizerName .~ Nothing)
+        M.<# do
+            M.removeLocalStorage $ ms "authToken"
+            M.removeLocalStorage $ ms "langMemorizerName"
+            pure MA.DoNothing
 updateModel MA.SignUp                                                model = model M.<# do
     (langMemorizer':_) <- formData (ms "sign-up-form") True
         :: M.JSM [MM.LanguageMemorizer]
-    fetchOptions <- create
-    fetchOptions <# "body" $ ms $ encode langMemorizer'
-    fetchHeaders <- create
-    fetchHeaders <# "Content-Type" $ "application/json"
-    fetchOptions <# "headers" $ fetchHeaders
-    fetchOptions <# "method" $ "POST"
-    _ <- jsg2 "fetch" "http://localhost:8080/sign-up" fetchOptions
+    fetchOptions <- LJJ.create
+    fetchOptions LJJ.<# "body" $ ms $ encode langMemorizer'
+    fetchHeaders <- LJJ.create
+    fetchHeaders LJJ.<# "content-type" $ "application/json"
+    fetchOptions LJJ.<# "headers" $ fetchHeaders
+    fetchOptions LJJ.<# "method" $ "POST"
+    signUpUrl <- liftIO $ getEnv "api_server_sign_up_url"
+    _ <- LJJ.jsg2 "fetch" signUpUrl fetchOptions
     pure MA.DoNothing
 updateModel (MA.SwitchPage MA.First MA.Sets)                         model = M.noEff
     $ model&pagination.sets.current .~ 0
@@ -319,8 +339,9 @@ updateModel (MA.SwitchPage MA.Previous (MA.Units setIx'))            model =
     then model
     else model&pagination.units.ix setIx'.current -~ 1) M.<# pure (MA.RefreshSet setIx')
 updateModel MA.ToggleMenuVisibility                                  model =
-    (model&menuIsVisible %~ not)
-        M.<# ((M.getBody ! "classList" # "toggle" $ [ "covered" ]) >> pure MA.DoNothing)
+    (model&menuIsVisible %~ not) M.<# do
+        _ <- M.getBody LJJ.! "classList" LJJ.# "toggle" $ [ "covered" ]
+        pure MA.DoNothing
 updateModel (MA.UpdateMemorizing liteSetIx' tmpUnitIx' translateIx') model = (model
     &memorizing .~ newMemorizing
     &statistics .~ newStatistics

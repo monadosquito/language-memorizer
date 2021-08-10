@@ -41,16 +41,16 @@ data LiteSet = LiteSet
     } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
 
 data Model = Model
-    { _activeSetIx   :: SetIx
-    , _editedSet     :: EditedSet
-    , _langMemorizer :: Maybe LanguageMemorizer
-    , _memorizing    :: Memorizing
-    , _menuIsVisible :: Bool
-    , _pagination    :: Pagination
-    , _sets          :: [Set]
-    , _settings      :: Settings
-    , _statistics    :: [[SetResult]]
-    , _uri           :: URI
+    { _activeSetIx       :: SetIx
+    , _editedSet         :: EditedSet
+    , _langMemorizerName :: Maybe MisoString
+    , _memorizing        :: Memorizing
+    , _menuIsVisible     :: Bool
+    , _pagination        :: Pagination
+    , _sets              :: [Set]
+    , _settings          :: Settings
+    , _statistics        :: [[SetResult]]
+    , _uri               :: URI
     } deriving stock (Eq, Show)
 type SetIx  = Int
 type UnitIx = Int

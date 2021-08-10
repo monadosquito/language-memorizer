@@ -18,8 +18,9 @@ import Views.Dumb.ActivePage.Common (activePage)
 import Views.Dumb.Providing.Footer.Common (footer)
 import Views.Dumb.Link.Common (link)
 import Views.Dumb.Menu.Common (menu)
+import Views.Smart.Avatar.Common (avatar)
 import Views.Smart.Router.Common (router)
-import Views.Smart.Router.Utils (goHome, goSets, goSettings)
+import Views.Smart.Router.Utils (goHome, goSets, goSignIn, goSignUp, goSettings)
 
 
 makeFieldsNoPrefix ''Model
@@ -32,7 +33,10 @@ root model = div_
     , menu
         (BemClass "Root" [ darkMode' model ]
             $ if model ^. menuIsVisible then [ "visible" ] else [])
-        [ link (BemClass "Root" [ darkMode' model ] []) goHome "Home"
+        [ link (BemClass "Root" [ darkMode' model ] []) goSignUp "Sign Up"
+        , link (BemClass "Root" [ darkMode' model ] []) goSignIn "Sign In"
+        , avatar (BemClass "Root" [] []) model
+        , link (BemClass "Root" [ darkMode' model ] []) goHome "Home"
         , link (BemClass "Root" [ darkMode' model ] []) goSettings "Settings"
         , link (BemClass "Root" [ darkMode' model ] []) goSets "Sets"
         ]

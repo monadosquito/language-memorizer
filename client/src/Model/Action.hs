@@ -41,16 +41,18 @@ data Action
     | SignUp
     | SwitchPage PageSwitchWay Paginated
     | ToggleMenuVisibility
+    | UpdateLanguageMemorizerName LanguageMemorizerName
     | UpdatePagination PaginationUpdatingWay
     | UpdateSets (Maybe SetIx) Set
     | UpdateSettings Settings
     | UpdateMemorizing LiteSetIx TmpUnitIx TranslateIx
     | UpdateUnits SetIx Unit
     deriving stock (Eq, Show)
-type Answer             = MisoString
-type EditedSetPartValue = MisoString
-type LiteSetIx          = Int
-type TmpUnitIx          = Int
+type Answer                = MisoString
+type EditedSetPartValue    = MisoString
+type LanguageMemorizerName = MisoString
+type LiteSetIx             = Int
+type TmpUnitIx             = Int
 
 data EditedSetPart = Name | UnitText | UnitTranslate TranslateIx deriving stock (Eq, Show)
 

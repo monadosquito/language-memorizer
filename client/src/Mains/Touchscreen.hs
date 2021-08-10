@@ -19,8 +19,8 @@ import Text.Sass.Options (defaultSassOptions)
 import Control.Lens ((^.), (^..), (^?))
 import Control.Lens.Extras (is)
 import Control.Lens.TH (makeFieldsNoPrefix)
+import Language.Javascript.JSaddle ((#), jsg, valIsNull, valToStr)
 import Miso.String (ms)
-
 import System.Environment (getEnv)
 
 import Model.UpdateModel (updateModel)
@@ -55,6 +55,9 @@ runApp app = app
 
 main :: IO ()
 main = runApp $ do
+    jsValLangMemorizerName <- jsg "localStorage" # "getItem" $ [ "langMemorizerName" ]
+    jsValLangMemorizerNameIsNull <- valIsNull jsValLangMemorizerName
+    langMemorizerName <- valToStr jsValLangMemorizerName
     memorizing <- M.getLocalStorage
         $ ms "memorizing" :: M.JSM (Either String MM.Memorizing)
     sets' <- M.getLocalStorage $ ms "sets" :: M.JSM (Either String [MM.Set])
@@ -74,10 +77,11 @@ main = runApp $ do
             else MA.RepeatMemorizing
         , logLevel      = M.Off
         , model         = MM.Model
-            { _activeSetIx   = -1
-            , _editedSet     = MM.EditedSet (ms "") []
-            , _langMemorizer = Nothing
-            , _memorizing    = memorizing ^? CLC._Right ^. CLC.non (MM.Memorizing
+            { _activeSetIx       = -1
+            , _editedSet         = MM.EditedSet (ms "") []
+            , _langMemorizerName =
+                if jsValLangMemorizerNameIsNull then Nothing else Just langMemorizerName
+            , _memorizing        = memorizing ^? CLC._Right ^. CLC.non (MM.Memorizing
                 { _answer          = ms ""
                 , _liteSets        = []
                 , _pause           = False
@@ -87,8 +91,8 @@ main = runApp $ do
                 , _translateIx     = -1
                 , _unitIx          = -1
                 })
-            , _menuIsVisible = False
-            , _pagination    = MM.Pagination
+            , _menuIsVisible     = False
+            , _pagination        = MM.Pagination
                 { _sets       = MM.Pages 0 . pagesCount
                     (settings ^. setsPageCount.CLC.to read)
                     $ sets ^. CLC.to length
@@ -102,10 +106,10 @@ main = runApp $ do
                         . length
                         )
                 }
-            , _sets          = sets
-            , _settings      = settings
-            , _statistics    = statistics
-            , _uri           = uri
+            , _sets              = sets
+            , _settings          = settings
+            , _statistics        = statistics
+            , _uri               = uri
             }
         , mountPoint    = Nothing
         , subs          = [ M.uriSub MA.HandleUri ]
@@ -115,7 +119,7 @@ main = runApp $ do
   where
     defaultSettings = MM.Settings
         { _activeSetIxs        = Nothing
-        , _darkMode            = Just "False" 
+        , _darkMode            = Just "False"
         , _memorizingMode      = MM.Text
         , _setsPageCount       = "42"
         , _statisticsPageCount = "1"
