@@ -1,7 +1,33 @@
 .Footer
-  &-LinkList
-    align-items: center
-    background: linear-gradient(#736CED, #9F9FED)
+  align-items: center
+  background: linear-gradient(#736CED, #9F9FED)
+  display: flex
+  justify-content: space-around
+  height: 100%
+
+  &-Burger
+    border: 0
+
+    &, &::after, &::before
+      background: #FEF9FF
+      content: ''
+      display: block
+      height: 10px
+      width: 40px
+
+    &::after
+      background: linear-gradient(#FEF9FF, #D4C1EC)
+      border-bottom-left-radius: 2vw 1vh
+      border-bottom-right-radius: 2vw 1vh
+      transform: translate(-6px, 3px)
+
+    &::before
+      background: linear-gradient(#D4C1EC, #FEF9FF)
+      border-top-left-radius: 2vw 1vh
+      border-top-right-radius: 2vw 1vh
+      transform: translate(-6px, -15px)
+
+  &-Item
     display: flex
-    justify-content: space-around
-    height: 100%
+    justify-content: center
+    flex: 1

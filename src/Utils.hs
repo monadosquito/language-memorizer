@@ -2,12 +2,13 @@
 {-# LANGUAGE OverloadedStrings  #-}
 
 module Utils
-    ( BemClass   (..)
-    , FormMark   ()
-    , Page       ()
-    , PagesCount ()
-    , SetIx      ()
-    , UnitIx     ()
+    ( BemClass        (..)
+    , ElementModifier ()
+    , FormMark        ()
+    , Page            ()
+    , PagesCount      ()
+    , SetIx           ()
+    , UnitIx          ()
     , bemClass
     , formData
     , pagesCount
@@ -71,15 +72,15 @@ paginate :: Page -> PagesCount -> [a] -> [a]
 paginate _    0           xs = xs
 paginate page pagesCount' xs = take pagesCount' $ drop (page * pagesCount') xs
 
-type BlockModifier   = Modifier
 type BlockName       = Name
-type ElementModifier = Modifier
+type BlockModifier   = Modifier
 type Modifier        = String
 type Name            = String
 type ParentName      = Name
 
-type FormMark   = MisoString
-type Page       = Int
-type PagesCount = Int
-type SetIx      = Int
-type UnitIx     = Int
+type ElementModifier = Modifier
+type FormMark        = MisoString
+type Page            = Int
+type PagesCount      = Int
+type SetIx           = Int
+type UnitIx          = Int

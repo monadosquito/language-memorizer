@@ -2,8 +2,7 @@
 
 @import '../../ActivePage/Touchscreen'
 @import '../../Footer/Common'
-@import '../../Header/Common'
-@import '../../../Smart/Set/Common'
+@import '../../Menu/Touchscreen'
 
 
 \:root
@@ -33,7 +32,7 @@ body
     position: fixed
 
     height: calc(100vh - var(--footer-height))
-    width: 100vw
+    width: 100%
 
     &_visible
-      transform: translateY(calc(-100vh + var(--footer-height)))
+      transform: translateY(calc(-100vh))

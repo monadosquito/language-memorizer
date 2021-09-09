@@ -3,6 +3,7 @@
 module Model.Action
     ( Action                (..)
     , EditedSetPart         (..)
+    , MemorizingMode        (..)
     , Paginated             (..)
     , PaginationUpdatingWay (..)
     , PageSwitchWay         (..)
@@ -20,26 +21,39 @@ data Action
     | AddUnit
     | AddTranslate UnitIx
     | ChangeUri URI
+    | CheckAnswer MemorizingMode Answer
     | DeleteSet SetIx
     | DeleteTranslate UnitIx TranslateIx
     | DeleteUnit UnitIx
     | DoNothing
     | EditSet EditedSetPart UnitIx EditedSetPartValue
+    | FailMemorizingStep
     | HandleUri URI
     | RefreshSet SetIx
+    | RepeatMemorizing
     | SaveSet
     | SaveSets
     | SaveSettings
+    | SelectRandomMemorizingUnit
+    | ShowAnswer MemorizingMode
     | SwitchPage PageSwitchWay Paginated
+    | ToggleMenuVisibility
     | UpdatePagination PaginationUpdatingWay
     | UpdateSets (Maybe SetIx) Set
     | UpdateSettings Settings
+    | UpdateMemorizing LiteSetIx TmpUnitIx TranslateIx
     | UpdateUnits SetIx Unit
     deriving stock (Eq, Show)
+type Answer             = MisoString
 type EditedSetPartValue = MisoString
+type LiteSetIx          = Int
+type TmpUnitIx          = Int
 
 data EditedSetPart = Name | UnitText | UnitTranslate TranslateIx deriving stock (Eq, Show)
+
 type TranslateIx = Int
+
+data MemorizingMode = Text' | Translates deriving stock (Eq, Show)
 
 data PageSwitchWay = First | Jump Page | Last | Next | Previous deriving stock (Eq, Show)
 

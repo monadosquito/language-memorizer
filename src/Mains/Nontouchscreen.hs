@@ -17,22 +17,24 @@ import Text.Sass.Compilation (StringResult, compileFile)
 import Text.Sass.Options (defaultSassOptions)
 #endif
 import Control.Lens ((^.), (^..), (^?))
-import Control.Lens.Combinators (_Right, each, non, to)
+import Control.Lens.Extras (is)
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Miso.String (ms)
 
 import System.Environment (getEnv)
 
-import Model.Action (Action (DoNothing, HandleUri))
 import Model.UpdateModel (updateModel)
 import Utils (pagesCount)
 import Views.Dumb.Providing.Root.Nontouchscreen (root)
 
+import qualified Control.Lens.Combinators as CLC
 import qualified Miso as M
 
+import qualified Model.Action as MA
 import qualified Model.Model as MM
 
 
+makeFieldsNoPrefix ''MM.LiteSet
 makeFieldsNoPrefix ''MM.Set
 makeFieldsNoPrefix ''MM.Settings
 
@@ -52,26 +54,42 @@ runApp app = app
 
 main :: IO ()
 main = runApp $ do
-    uri <- M.getCurrentURI
+    memorizing <- M.getLocalStorage
+        $ ms "memorizing" :: M.JSM (Either String MM.Memorizing)
     sets' <- M.getLocalStorage $ ms "sets" :: M.JSM (Either String [MM.Set])
     settings' <- M.getLocalStorage $ ms "settings" :: M.JSM (Either String MM.Settings)
+    uri <- M.getCurrentURI
     let
-        sets     = sets' ^? _Right ^. non []
-        settings = settings' ^? _Right ^. non defaultSettings
+        sets     = sets' ^? CLC._Right ^. CLC.non []
+        settings = settings' ^? CLC._Right ^. CLC.non defaultSettings
     M.startApp M.App
         { events        = M.defaultEvents
-        , initialAction = DoNothing
+        , initialAction =
+            if is CLC._Right memorizing
+            then MA.DoNothing
+            else MA.RepeatMemorizing
         , logLevel      = M.Off
         , model         = MM.Model
             { _activeSetIx = -1
-            , _editedSet   = MM.EditedSet (ms "") []
+            , _editedSet   = MM.EditedSet (ms "") [] 
+            , _memorizing  = memorizing ^? CLC._Right ^. CLC.non (MM.Memorizing
+                { _answer          = ms ""
+                , _liteSets        = []
+                , _pause           = False
+                , _progress        = []
+                , _initLiteSetsLen = -1
+                , _setIx           = -1
+                , _translateIx     = -1
+                , _unitIx          = -1
+                })
             , _pagination  = MM.Pagination
-                { _sets  = MM.Pages 0 . pagesCount (settings ^. setsPageCount.to read)
-                    $ sets ^. to length
+                { _sets  = MM.Pages 0 . pagesCount
+                    (settings ^. setsPageCount.CLC.to read)
+                    $ sets ^. CLC.to length
                 , _units = sets
-                    ^.. each.units.non [].to
+                    ^.. CLC.each.units.CLC.non [].CLC.to
                         ( MM.Pages 0
-                        . (pagesCount $ settings ^. unitsPageCount.to read)
+                        . (pagesCount $ settings ^. unitsPageCount.CLC.to read)
                         . length
                         )
                 }
@@ -80,12 +98,14 @@ main = runApp $ do
             , _uri         = uri
             }
         , mountPoint    = Nothing
-        , subs          = [ M.uriSub HandleUri ]
+        , subs          = [ M.uriSub MA.HandleUri ]
         , update        = updateModel
         , view          = root
         }
   where
     defaultSettings = MM.Settings
-        { _unitsPageCount = "42"
+        { _activeSetIxs   = Nothing
+        , _memorizingMode = MM.Text
         , _setsPageCount  = "42"
+        , _unitsPageCount = "42"
         }

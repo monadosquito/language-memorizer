@@ -1,0 +1,60 @@
+.Memorizing
+  background: #FEF9FF
+  display: flex
+  gap: 2vh 4vw
+  flex-flow: column
+  height: 100%
+  padding: 2vh 4vw
+
+  &-Bar
+    flex-basis: 6%
+
+  &-Button:first-child
+    margin-right: auto
+
+  &-ControlPanel
+    margin-top: auto
+
+    @extend .Form
+    @extend .Form_inline
+
+    border-top-left-radius: 0
+    border-top-right-radius: 0
+
+  &-Form
+    border-radius: 0
+
+  &-Text
+    background: #F2DFD7
+    border-top-left-radius: 2vw 1vh
+    border-top-right-radius: 2vw 1vh
+    flex: 1
+    font-size: 2rem
+    padding: 2vh 4vw
+
+.Bar
+  background: #F2DFD7
+  border-radius: 8vw 4vh
+  display: flex
+  gap: 2vw 1vh
+  justify-content: stretch
+  padding: 1vh 2vw
+
+  &-Segment
+    background: #9F9FED
+    border-radius: 2vw 1vh
+    flex: 1
+
+    &:first-child
+      border-bottom-left-radius: 4vw 2vh
+      border-top-left-radius: 4vw 2vh
+
+    &:last-child
+      border-bottom-right-radius: 4vw 2vh
+      border-top-right-radius: 4vw 2vh
+
+    &_failed
+      background: linear-gradient(#610c04, #C21807)
+
+    &_succeeded
+      background: linear-gradient(#215708, #43AF11)
