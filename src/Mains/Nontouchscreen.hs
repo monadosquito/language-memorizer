@@ -82,7 +82,8 @@ main = runApp $ do
                 , _translateIx     = -1
                 , _unitIx          = -1
                 })
-            , _pagination  = MM.Pagination
+            , _menuIsVisible = False
+            , _pagination    = MM.Pagination
                 { _sets  = MM.Pages 0 . pagesCount
                     (settings ^. setsPageCount.CLC.to read)
                     $ sets ^. CLC.to length
