@@ -13,9 +13,10 @@ import Control.Lens.Prism (_Just)
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Control.Lens.Traversal (traversed)
 import Control.Monad (replicateM)
+import Data.Aeson (encode)
 import Data.Maybe (listToMaybe)
-import Language.Javascript.JSaddle ((!), (#), jsg, valToNumber)
-import Miso.String (ms)
+import Language.Javascript.JSaddle ((!), (#), (<#), create, fun, jsg, jsg2, valToNumber, valToStr)
+import Miso.String (fromMisoString, ms)
 
 import Utils (formData, listedStep, pagesCount, setResultsIsDone)
 
@@ -36,6 +37,7 @@ makeFieldsNoPrefix ''MM.SetResult
 makeFieldsNoPrefix ''MM.SetResultStep
 makeFieldsNoPrefix ''MM.Settings
 makeFieldsNoPrefix ''MM.Unit
+makeFieldsNoPrefix ''MM.LanguageMemorizer
 
 updateModel :: MA.Action -> MM.Model -> M.Effect MA.Action MM.Model
 updateModel MA.AddSet                                                model = model M.<# do
@@ -226,6 +228,46 @@ updateModel (MA.ShowAnswer MA.Translates)                            model = (mo
         M.<# pure MA.FailMemorizingStep
   where
     memorizing' = model ^. memorizing
+updateModel MA.SignIn                                                model = model M.<# do
+    (langMemorizer':_) <- formData (ms "sign-in-form") True
+        :: M.JSM [MM.LanguageMemorizer]
+    fetchOptions <- create
+    fetchOptions <# "body" $ ms $ encode langMemorizer'
+    fetchHeaders <- create
+    fetchHeaders <# "Content-Type" $ "application/json"
+    fetchOptions <# "headers" $ fetchHeaders
+    fetchOptions <# "method" $ "POST"
+    resp <- jsg2 "fetch" "http://localhost:8080/sign-in" fetchOptions
+    _ <- resp # "then"
+        $ fun $ \_ _ args -> do
+            case args of
+                [ resp1 ] -> do
+                    _ <- (resp1 # "text" $ ()) # "then" $ fun $ \_ _ args1 -> do
+                        case args1 of
+                            [ jsValAuthToken ] -> do
+                                authToken <- fromMisoString <$> valToStr jsValAuthToken
+                                _ <- jsg "localStorage" # "setItem"
+                                    $ [ "authToken", authToken ]
+                                pure ()
+                            _                  -> pure ()
+
+                    pure ()
+                _         -> pure ()
+            pure ()
+    pure MA.DoNothing
+updateModel MA.SignOut                                               model = model M.<#
+    (M.removeLocalStorage (ms "authToken") >> pure MA.DoNothing)
+updateModel MA.SignUp                                                model = model M.<# do
+    (langMemorizer':_) <- formData (ms "sign-up-form") True
+        :: M.JSM [MM.LanguageMemorizer]
+    fetchOptions <- create
+    fetchOptions <# "body" $ ms $ encode langMemorizer'
+    fetchHeaders <- create
+    fetchHeaders <# "Content-Type" $ "application/json"
+    fetchOptions <# "headers" $ fetchHeaders
+    fetchOptions <# "method" $ "POST"
+    _ <- jsg2 "fetch" "http://localhost:8080/sign-up" fetchOptions
+    pure MA.DoNothing
 updateModel (MA.SwitchPage MA.First MA.Sets)                         model = M.noEff
     $ model&pagination.sets.current .~ 0
 updateModel (MA.SwitchPage (MA.Jump page) MA.Sets)                   model = M.noEff
@@ -258,11 +300,11 @@ updateModel (MA.SwitchPage MA.Previous MA.Statistics)                model =
     M.noEff $ if model ^. pagination.statistics.current == 0
     then model
     else model&pagination.statistics.current -~ 1
-updateModel (MA.SwitchPage MA.First (MA.Units setIx'))               model =
+updateModel (MA.SwitchPage MA.First (MA.Units setIx'))                     model =
     (model&pagination.units.ix setIx'.current .~ 0) M.<# pure (MA.RefreshSet setIx')
-updateModel (MA.SwitchPage (MA.Jump page) (MA.Units setIx'))         model =
+updateModel (MA.SwitchPage (MA.Jump page) (MA.Units setIx'))               model =
     (model&pagination.units.ix setIx'.current .~ page) M.<# pure (MA.RefreshSet setIx')
-updateModel (MA.SwitchPage MA.Last (MA.Units setIx'))                model =
+updateModel (MA.SwitchPage MA.Last (MA.Units setIx'))                      model =
     (model&pagination.units.ix setIx'.current .~ (model
         ^? pagination.units.ix setIx'.count
         ^. non 1.to (subtract 1))) M.<# pure (MA.RefreshSet setIx')

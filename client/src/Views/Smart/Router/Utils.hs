@@ -20,7 +20,13 @@ import Model.Action (Action (ChangeUri))
 import Utils (SetIx ())
 
 
-type Routes = Home :<|> Memorizing :<|> Set :<|> Sets :<|> Settings :<|> Statistics
+type Routes
+    =    Home
+    :<|> Memorizing
+    :<|> Set
+    :<|> Sets
+    :<|> Settings
+    :<|> Statistics
 type Home       = View Action
 type Memorizing = "memorizing" :> View Action
 type Set        = "set" :> Capture "id" Int :> View Action

@@ -14,8 +14,8 @@ import Views.Smart.Router.Utils (goHome, goMemorizing, goSets, goSettings, goSta
 
 
 header :: BemClass -> Model -> View Action
-header bemClass_ model = header_
-    [ class_ $ bemClass "Header" bemClass_
+header bemClass' model = header_
+    [ class_ $ bemClass "Header" bemClass'
     ]
     [ nav_
         [ class_ . bemClass "LinkList" $ BemClass "Header" [] []

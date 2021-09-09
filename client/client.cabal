@@ -1,5 +1,5 @@
 cabal-version:      >=1.10
-name:               language-memorizer-client
+name:               client
 version:            0.1.0.0
 license:            BSD3
 license-file:       LICENSE
@@ -10,7 +10,7 @@ extra-source-files: CHANGELOG.md
 
 executable nontouchscreen
   main-is: Mains/Nontouchscreen.hs
-  build-depends: aeson, base, lens, jsaddle, miso, servant
+  build-depends: aeson, base, directory, lens, jsaddle, miso, servant
   if !impl(ghcjs)
     build-depends:
       hsass, jsaddle-warp, transformers, websockets
@@ -20,7 +20,7 @@ executable nontouchscreen
 
 executable touchscreen
   main-is: Mains/Touchscreen.hs
-  build-depends: aeson, base, lens, jsaddle, miso, servant
+  build-depends: aeson, base, directory, lens, jsaddle, miso, servant
   if !impl(ghcjs)
     build-depends:
       hsass, jsaddle-warp, transformers, websockets

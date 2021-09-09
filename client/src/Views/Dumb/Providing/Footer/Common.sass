@@ -5,6 +5,20 @@
   justify-content: space-around
   height: 100%
 
+  &_darkMode
+    background: linear-gradient(#536271, #6A687A)
+    color: #2C3D55
+
+    .Footer-Burger
+      background: #84828F
+
+      &:after
+        background: linear-gradient(#84828F, #536271)
+
+      &:before
+        background: linear-gradient(#6A687A, #84828F)
+        
+
   &-Burger
     border: 0
 
@@ -26,8 +40,3 @@
       border-top-left-radius: 2vw 1vh
       border-top-right-radius: 2vw 1vh
       transform: translate(-6px, -15px)
-
-  &-Item
-    display: flex
-    justify-content: center
-    flex: 1

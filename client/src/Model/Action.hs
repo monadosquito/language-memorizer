@@ -36,6 +36,9 @@ data Action
     | SaveSettings
     | SelectRandomMemorizingUnit
     | ShowAnswer MemorizingMode
+    | SignIn
+    | SignOut
+    | SignUp
     | SwitchPage PageSwitchWay Paginated
     | ToggleMenuVisibility
     | UpdatePagination PaginationUpdatingWay

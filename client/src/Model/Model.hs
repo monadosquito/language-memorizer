@@ -4,18 +4,19 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Model.Model
-    ( EditedSet      (..)
-    , LiteSet        (..)
-    , Memorizing     (..)
-    , MemorizingMode (..)
-    , Model          (..)
-    , Pages          (..)
-    , Pagination     (..)
-    , SetResultStep  (..)
-    , Set            (..)
-    , SetResult      (..)
-    , Settings       (..)
-    , Unit           (..)
+    ( EditedSet         (..)
+    , LanguageMemorizer (..)
+    , LiteSet           (..)
+    , Memorizing        (..)
+    , MemorizingMode    (..)
+    , Model             (..)
+    , Pages             (..)
+    , Pagination        (..)
+    , SetResultStep     (..)
+    , Set               (..)
+    , SetResult         (..)
+    , Settings          (..)
+    , Unit              (..)
     ) where
 
 import Data.Aeson (FromJSON (), ToJSON ())
@@ -42,6 +43,7 @@ data LiteSet = LiteSet
 data Model = Model
     { _activeSetIx   :: SetIx
     , _editedSet     :: EditedSet
+    , _langMemorizer :: Maybe LanguageMemorizer
     , _memorizing    :: Memorizing
     , _menuIsVisible :: Bool
     , _pagination    :: Pagination
@@ -52,6 +54,12 @@ data Model = Model
     } deriving stock (Eq, Show)
 type SetIx  = Int
 type UnitIx = Int
+
+data LanguageMemorizer = LanguageMemorizer
+    { _email
+    , _name
+    , _password :: String
+    } deriving stock (Eq, Generic, Show) deriving anyclass (FromJSON, ToJSON)
 
 data Memorizing = Memorizing
     { _answer          :: MisoString

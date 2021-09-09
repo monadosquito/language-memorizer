@@ -5,7 +5,7 @@
 {-# LANGUAGE RecordWildCards        #-}
 {-# LANGUAGE TemplateHaskell        #-}
 
-module Nontouchscreen
+module Touchscreen
     ( main
     ) where
 
@@ -25,7 +25,7 @@ import System.Environment (getEnv)
 
 import Model.UpdateModel (updateModel)
 import Utils (pagesCount)
-import Views.Dumb.Providing.Root.Nontouchscreen (root)
+import Views.Dumb.Providing.Root.Touchscreen (root)
 
 import qualified Control.Lens.Combinators as CLC
 import qualified Miso as M
@@ -41,11 +41,12 @@ makeFieldsNoPrefix ''MM.Settings
 #ifndef __GHCJS__
 runApp :: M.JSM () -> IO ()
 runApp app = do
-    sassMainPath <- makeAbsolute "src/Views/Dumb/Providing/Root/Nontouchscreen.sass"
+    sassMainPath <- makeAbsolute "client/src/Views/Dumb/Providing/Root/Touchscreen.sass"
     Right css <- compileFile sassMainPath defaultSassOptions :: StringResult
-    port <- getEnv "nontouchscreen_client_dev_www_server_port"
+    port <- getEnv "touchscreen_client_dev_www_server_port"
     run (read port) $ do
-        M.getDoc ! "head" <# "innerHTML" $ "<style>" ++ css ++ "</style>"
+        let meta = "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+        M.getDoc ! "head" <# "innerHTML" $ meta ++ "<style>" ++ css ++ "</style>"
         app
 #else
 runApp :: IO () -> IO ()
@@ -73,9 +74,10 @@ main = runApp $ do
             else MA.RepeatMemorizing
         , logLevel      = M.Off
         , model         = MM.Model
-            { _activeSetIx = -1
-            , _editedSet   = MM.EditedSet (ms "") [] 
-            , _memorizing  = memorizing ^? CLC._Right ^. CLC.non (MM.Memorizing
+            { _activeSetIx   = -1
+            , _editedSet     = MM.EditedSet (ms "") []
+            , _langMemorizer = Nothing
+            , _memorizing    = memorizing ^? CLC._Right ^. CLC.non (MM.Memorizing
                 { _answer          = ms ""
                 , _liteSets        = []
                 , _pause           = False
@@ -113,7 +115,7 @@ main = runApp $ do
   where
     defaultSettings = MM.Settings
         { _activeSetIxs        = Nothing
-        , _darkMode            = Just "False"
+        , _darkMode            = Just "False" 
         , _memorizingMode      = MM.Text
         , _setsPageCount       = "42"
         , _statisticsPageCount = "1"
