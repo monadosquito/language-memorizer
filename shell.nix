@@ -3,7 +3,7 @@ with (import ./default.nix); with pkgs; let
   mkReloadClientCmd = mkReloadCmd "client" true;
   mkReloadCmd = appType: isMultiPlatform: platform: ''
     ${haskell.packages.ghc865.ghcid}/bin/ghcid \
-      -c 'ghci -fdiagnostics-color=always -ferror-spans -i${appType}/src \
+      -c 'ghci -fdiagnostics-color=always -ferror-spans -icommon/src/Common -i${appType}/src \
         ${appType}/src/${if isMultiPlatform then "Mains/" else ""}${platform}.hs' \
       -T=:main \
       $(echo "--restart=$(find $PWD -name *.sass)" | sed ':a;N;$!ba;s/\n/\n --restart=/g') \

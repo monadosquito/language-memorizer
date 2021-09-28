@@ -3,7 +3,9 @@ with (import (fetchGit {
   rev = "0be227bca6e0aec16a69a1c09f9a90624af070c1";
   ref = "master";
 }) {}); with pkgs; with haskell.packages // lib; with ghc865; let
-  clientResult = ghcjs.callCabal2nix "client" ./client {};
+  clientResult = ghcjs.callCabal2nix "client" ./client {
+    common = ghcjs.callCabal2nix "common" ./common {};
+  };
   mkClientBundle = platform: ''
     echo "
       <head>
@@ -27,13 +29,14 @@ with (import (fetchGit {
     " > $out/${platform}.html
   '';
 in rec {
-  clientDev = callCabal2nix "client" ./client {miso = miso-jsaddle;};
+  clientDev = callCabal2nix "client" ./client {miso = miso-jsaddle; inherit common;};
+  common = callCabal2nix "common" ./common {};
   prod = runCommand "prod" {} ''
     mkdir $out
     ${mkClientBundle "nontouchscreen"}
     ${mkClientBundle "touchscreen"}
     cp ${server}/bin/server $out/server
   '';
-  server = callCabal2nix "server" ./server {};
+  server = callCabal2nix "server" ./server {inherit common;};
   inherit pkgs;
 }

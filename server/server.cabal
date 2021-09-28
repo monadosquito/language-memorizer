@@ -13,7 +13,7 @@ executable server
   build-depends:
       aeson
     , base, bytestring
-    , case-insensitive
+    , case-insensitive, common
     , postgresql-simple
     , servant, servant-auth-server, servant-server
     , utf8-string
