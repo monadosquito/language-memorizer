@@ -4,7 +4,7 @@ module Ports.Database
 
 import Data.Int (Int64 ())
 
-import Core (LanguageMemorizer ())
+import Common (LanguageMemorizer ())
 
 
 class DbConnection d where

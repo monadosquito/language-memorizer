@@ -20,7 +20,7 @@ import Data.CaseInsensitive (mk)
 import GHC.Generics (Generic ())
 import System.Environment (getEnv)
 
-import Core (LanguageMemorizer ())
+import Common (LanguageMemorizer ())
 import Ports.Database (DbConnection (..))
 import Ports.WwwServer (WwwServer (..))
 

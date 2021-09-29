@@ -20,6 +20,7 @@ import Data.Maybe (listToMaybe)
 import Miso.String (fromMisoString, ms)
 import System.Environment (getEnv)
 
+import Common (LanguageMemorizer ())
 import Utils (formData, listedStep, pagesCount, setResultsIsDone)
 
 import qualified Language.Javascript.JSaddle as LJJ
@@ -29,8 +30,8 @@ import qualified Model.Model as MM
 import qualified Model.Action as MA
 
 
+makeFieldsNoPrefix ''LanguageMemorizer
 makeFieldsNoPrefix ''MM.EditedSet
-makeFieldsNoPrefix ''MM.LanguageMemorizer
 makeFieldsNoPrefix ''MM.LiteSet
 makeFieldsNoPrefix ''MM.Memorizing
 makeFieldsNoPrefix ''MM.Model
@@ -235,7 +236,7 @@ updateModel (MA.ShowAnswer MA.Translates)                            model = (mo
     memorizing' = model ^. memorizing
 updateModel MA.SignIn                                                model = model M.<# do
     (langMemorizer':_) <- formData (ms "sign-in-form") True
-        :: M.JSM [MM.LanguageMemorizer]
+        :: M.JSM [LanguageMemorizer]
     fetchOptions <- LJJ.create
     fetchOptions LJJ.<# "body" $ ms $ encode langMemorizer'
     fetchHeaders <- LJJ.create
@@ -278,7 +279,7 @@ updateModel MA.SignOut                                               model =
             pure MA.DoNothing
 updateModel MA.SignUp                                                model = model M.<# do
     (langMemorizer':_) <- formData (ms "sign-up-form") True
-        :: M.JSM [MM.LanguageMemorizer]
+        :: M.JSM [LanguageMemorizer]
     fetchOptions <- LJJ.create
     fetchOptions LJJ.<# "body" $ ms $ encode langMemorizer'
     fetchHeaders <- LJJ.create

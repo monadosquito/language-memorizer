@@ -4,19 +4,18 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Model.Model
-    ( EditedSet         (..)
-    , LanguageMemorizer (..)
-    , LiteSet           (..)
-    , Memorizing        (..)
-    , MemorizingMode    (..)
-    , Model             (..)
-    , Pages             (..)
-    , Pagination        (..)
-    , SetResultStep     (..)
-    , Set               (..)
-    , SetResult         (..)
-    , Settings          (..)
-    , Unit              (..)
+    ( EditedSet      (..)
+    , LiteSet        (..)
+    , Memorizing     (..)
+    , MemorizingMode (..)
+    , Model          (..)
+    , Pages          (..)
+    , Pagination     (..)
+    , SetResultStep  (..)
+    , Set            (..)
+    , SetResult      (..)
+    , Settings       (..)
+    , Unit           (..)
     ) where
 
 import Data.Aeson (FromJSON (), ToJSON ())

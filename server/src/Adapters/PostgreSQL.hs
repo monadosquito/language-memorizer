@@ -7,7 +7,7 @@ module Adapters.PostgreSQL
 import Data.Maybe (listToMaybe)
 import System.Environment (getEnv)
 
-import Core (LanguageMemorizer (LanguageMemorizer))
+import Common (LanguageMemorizer (LanguageMemorizer))
 import Ports.Database (DbConnection (..))
 
 import qualified Database.PostgreSQL.Simple as DPS

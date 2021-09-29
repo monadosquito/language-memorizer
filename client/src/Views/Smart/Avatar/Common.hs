@@ -10,8 +10,9 @@ module Views.Smart.Avatar.Common
 import Control.Lens ((^.), makeFieldsNoPrefix, to)
 import Miso (View (), button_, class_, div_, onClick, text)
 
+import Common (LanguageMemorizer ())
 import Model.Action (Action (SignOut))
-import Model.Model (Model (), LanguageMemorizer ())
+import Model.Model (Model ())
 import Utils (BemClass (BemClass), bemClass, darkMode')
 
 
