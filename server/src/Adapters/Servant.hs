@@ -21,6 +21,7 @@ import GHC.Generics (Generic ())
 import System.Environment (getEnv)
 
 import Common (LanguageMemorizer ())
+import Core (Set (Set), Unit (Unit))
 import Ports.Database (DbConnection (..))
 import Ports.WwwServer (WwwServer (..))
 
@@ -36,6 +37,9 @@ type Api
         S.:> S.Post '[S.JSON] (String, String)
     S.:<|> "sign-up" S.:> S.ReqBody '[S.JSON] LanguageMemorizer
         S.:> S.PostNoContent '[S.PlainText] S.NoContent
+    S.:<|> SAS.Auth '[SAS.JWT] AuthTokenPayload
+        S.:> "share-set" S.:> S.ReqBody '[S.JSON] Set
+            S.:> S.PostNoContent '[S.PlainText] S.NoContent
     S.:<|> S.Verb 'S.OPTIONS 200 '[S.PlainText] S.NoContent
 
 data AuthTokenPayload = AuthTokenPayload
@@ -50,7 +54,8 @@ instance WwwServer Servant where
         allowedReqHeaders <- getEnv "allowed_request_headers"
         allowedReqOrigs <- getEnv "allowed_request_origins"
         jwtKey <- SAS.generateKey
-        let corsPolicy = NWMC.simpleCorsResourcePolicy
+        let
+            corsPolicy = NWMC.simpleCorsResourcePolicy
                 { NWMC.corsOrigins        =
                     if allowedReqOrigs == "*"
                     then Nothing
@@ -58,18 +63,34 @@ instance WwwServer Servant where
                 , NWMC.corsRequestHeaders =
                     map mk . DBC.words $ fromString allowedReqHeaders
                 }
+            ctx         = SAS.defaultCookieSettings S.:. jwtSettings S.:. S.EmptyContext
+            jwtSettings = SAS.defaultJWTSettings jwtKey
         port <- getEnv "api_server_port"
         NWHW.run (read port)
             . NWMC.cors (const $ Just corsPolicy)
-            . S.serve (S.Proxy :: S.Proxy Api)
-            . server dbCon
-            $ SAS.defaultJWTSettings jwtKey
+            . S.serveWithContext (S.Proxy :: S.Proxy Api) ctx
+            $ server dbCon jwtSettings
         pure Servant
+      where
 
 server :: DbConnection d => d -> SAS.JWTSettings -> S.Server Api
-server dbConn jwtSettings = signIn S.:<|> signUp S.:<|> corsOptions
+server dbConn jwtSettings = signIn S.:<|> signUp S.:<|> shareSet S.:<|> corsOptions
   where
     corsOptions = pure S.NoContent
+    shareSet (SAS.Authenticated _) (Set name mbUnits) = do
+        liftIO . withTransaction dbConn $ do
+            sharedSetId <- addSet dbConn name
+            case mbUnits of
+                Just units -> mapM_
+                    (\(Unit text translates) -> do
+                        unitId <- addUnit dbConn sharedSetId text
+                        mapM_ (addTranslate dbConn unitId) translates
+                        pure ())
+                    units
+                Nothing    -> pure ()
+            pure ()
+        pure S.NoContent
+    shareSet _                     _                       = S.throwError S.err401
     signIn langMemorizer = do
         langMemorizersIdAndNames <- liftIO
             $ getLanguageMemorizerIdAndName dbConn langMemorizer

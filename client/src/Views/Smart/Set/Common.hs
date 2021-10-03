@@ -62,6 +62,12 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
             $ BemClass "Set" [ "inline", darkMode' model ] [ "bottom" ]
         ]
         [ M.input_
+            [ M.class_ . bemClass "Button" $ BemClass "Form" [ darkMode' model ] []
+            , M.onClick $ MA.ShareSet setIx'
+            , M.type_ "button"
+            , M.value_ "Share"
+            ]
+        , M.input_
             [ M.class_ . bemClass "Button"
                 $ BemClass
                     "Set"

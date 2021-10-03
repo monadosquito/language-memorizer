@@ -10,7 +10,7 @@ module Views.Smart.Sets.Common
 import Control.Lens ((^.), to)
 import Control.Lens.TH (makeFieldsNoPrefix)
 
-import Model.Action (Action (AddSet, DeleteSet), Paginated (Sets))
+import Model.Action (Action (AddSet, DeleteSet, ShareSet), Paginated (Sets))
 import Model.Model (Model (), Pages (), Pagination (), Set (), Settings ())
 import Utils (BemClass (BemClass), bemClass, darkMode', paginate)
 import Views.Smart.PageSwitcher.Common (pageSwitcher)
@@ -46,6 +46,12 @@ sets' bemClass' model = M.main_
                 , M.onClick $ DeleteSet setIx
                 , M.type_ "button"
                 , M.value_ "-"
+                ]
+            , M.input_
+                [ M.class_ . bemClass "Button" $ BemClass "Sets" [ darkMode' model ] []
+                , M.onClick $ ShareSet setIx
+                , M.type_ "button"
+                , M.value_ "Share"
                 ]
             ])
         . paginate

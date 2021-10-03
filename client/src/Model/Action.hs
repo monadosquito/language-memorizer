@@ -35,6 +35,7 @@ data Action
     | SaveSets
     | SaveSettings
     | SelectRandomMemorizingUnit
+    | ShareSet SetIx
     | ShowAnswer MemorizingMode
     | SignIn
     | SignOut

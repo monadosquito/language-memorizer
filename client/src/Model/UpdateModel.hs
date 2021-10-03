@@ -219,6 +219,20 @@ updateModel MA.SelectRandomMemorizingUnit                            model = mod
     randomIx randomNum' length' = floor $ randomNum' * fromIntegral length'
 updateModel (MA.UpdateLanguageMemorizerName langMemorizerName')      model = M.noEff
     $ model&langMemorizerName .~ Just langMemorizerName'
+updateModel (MA.ShareSet setIx')                                     model = model M.<# do
+    fetchOptions <- LJJ.create
+    fetchOptions LJJ.<# "body"
+        $ ms . encode $ model ^? sets.ix setIx' ^. non (MM.Set (ms "") Nothing)
+    jsValAuthToken <- LJJ.jsg "localStorage" LJJ.# "getItem" $ [ "authToken" ]
+    authToken <- fromMisoString <$> LJJ.valToStr jsValAuthToken
+    fetchHeaders <- LJJ.create
+    fetchHeaders LJJ.<# "authorization" $ "Bearer " ++ authToken
+    fetchHeaders LJJ.<# "content-type" $ "application/json"
+    fetchOptions LJJ.<# "headers" $ fetchHeaders
+    fetchOptions LJJ.<# "method" $ "POST"
+    shareSetUrl <- liftIO $ getEnv "api_server_share_set_url"
+    _ <- LJJ.jsg2 "fetch" shareSetUrl fetchOptions
+    pure MA.DoNothing
 updateModel (MA.ShowAnswer MA.Text')                                 model = (model
     &memorizing.answer .~ model
             ^? sets.ix (memorizing' ^. setIx).units._Just.ix (memorizing' ^. unitIx).text
