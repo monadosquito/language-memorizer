@@ -9,9 +9,11 @@ module Views.Smart.Sets.Common
 
 import Control.Lens ((^.), to)
 import Control.Lens.TH (makeFieldsNoPrefix)
+import Miso.String (ms)
 
+import Common (Set ())
 import Model.Action (Action (AddSet, DeleteSet, ShareSet), Paginated (Sets))
-import Model.Model (Model (), Pages (), Pagination (), Set (), Settings ())
+import Model.Model (Model (), Pages (), Pagination (), Settings ())
 import Utils (BemClass (BemClass), bemClass, darkMode', paginate)
 import Views.Smart.PageSwitcher.Common (pageSwitcher)
 import Views.Smart.Router.Utils (goSet)
@@ -39,7 +41,7 @@ sets' bemClass' model = M.main_
                 [ M.class_ . bemClass "SetListItemName" $ BemClass "Sets" [] []
                 , M.onClick $ goSet setIx
                 ]
-                [ M.text $ set' ^. name
+                [ M.text $ set' ^. name.to ms
                 ]
             , M.input_
                 [ M.class_ . bemClass "Button" $ BemClass "Sets" [ darkMode' model ] []

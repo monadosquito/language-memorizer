@@ -12,7 +12,8 @@ module Model.Action
 import Miso (URI ())
 import Miso.String (MisoString ())
 
-import Model.Model (Set (), Settings (), Unit ())
+import Common (Set (), Unit ())
+import Model.Model (Settings ())
 import Utils (Page (), SetIx (), UnitIx ())
 
 

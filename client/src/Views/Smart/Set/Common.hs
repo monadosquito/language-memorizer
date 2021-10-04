@@ -10,9 +10,11 @@ module Views.Smart.Set.Common
 import Control.Lens ((^.), (^..), (^?))
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Control.Lens.Combinators (_2, _Just, _head, filtered, ix, non, to, traversed, withIndex)
+import Miso.String (ms)
 
+import Common (Set (Set), Unit ())
 import Model.Action (Action (AddUnit))
-import Model.Model (Model (), Set (Set), Unit ())
+import Model.Model (Model())
 import Utils (BemClass (BemClass), SetIx (), UnitIx (), bemClass, darkMode', paginate)
 import Views.Smart.PageSwitcher.Common (pageSwitcher)
 
@@ -26,9 +28,9 @@ makeFieldsNoPrefix ''MM.EditedSet
 makeFieldsNoPrefix ''MM.Model
 makeFieldsNoPrefix ''MM.Pages
 makeFieldsNoPrefix ''MM.Pagination
-makeFieldsNoPrefix ''MM.Set
 makeFieldsNoPrefix ''MM.Settings
-makeFieldsNoPrefix ''MM.Unit
+makeFieldsNoPrefix ''Set
+makeFieldsNoPrefix ''Unit
 
 set :: BemClass -> SetIx -> Model -> M.View MA.Action
 set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
@@ -73,7 +75,7 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
                     "Set"
                     [ darkMode' model
                     , if null (model ^. editedSet.ixedUnits)
-                            && model ^. editedSet.name == model ^. sets.ix setIx'.name
+                            && model ^. editedSet.name == model ^. sets.ix setIx'.name.to ms
                         then "inactive"
                         else ""
                     ]
@@ -105,7 +107,7 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
             [ M.class_ . bemClass "FormField" $ BemClass "Form" [] []
             , M.name_ "_text"
             , M.onInput $ MA.EditSet MA.UnitText unitIx
-            , M.value_ $ unit ^. text
+            , M.value_ $ unit ^. text.to ms
             ]
         , M.ul_
             [ M.class_ . bemClass "FieldList" $ BemClass "Form" [] []
@@ -118,7 +120,7 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
                         [ M.class_ . bemClass "FormField" $ BemClass "Form" [] []
                         , M.name_ "_translates+"
                         , M.onInput $ MA.EditSet (MA.UnitTranslate translateIx) unitIx
-                        , M.value_ translate
+                        , M.value_ $ translate ^. to ms
                         ]
                     , M.input_
                         [ M.class_ . bemClass "Button"

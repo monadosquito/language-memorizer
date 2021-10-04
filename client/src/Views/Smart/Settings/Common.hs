@@ -12,8 +12,9 @@ import Control.Lens.Combinators (_Just, non, to, traversed, withIndex)
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Miso.String (ms)
 
+import Common (Set ())
 import Model.Action (Action (SaveSettings))
-import Model.Model (MemorizingMode (..), Model (), Set (), Settings ())
+import Model.Model (MemorizingMode (..), Model (), Settings ())
 import Utils (BemClass (BemClass), bemClass, darkMode')
 
 import qualified Miso as M
@@ -47,7 +48,7 @@ settings' bemClass' model = M.main_
                     , M.value_ $ ms setIx
                     ]
                     [ M.span_ []
-                        [ M.text $ set ^. name
+                        [ M.text $ set ^. name.to ms
                         ]
                     ]
                 )

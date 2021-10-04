@@ -23,6 +23,7 @@ import Language.Javascript.JSaddle ((#), jsg, valIsNull, valToStr)
 import Miso.String (ms)
 import System.Environment (getEnv)
 
+import Common (Set ())
 import Model.UpdateModel (updateModel)
 import Utils (pagesCount)
 import Views.Dumb.Providing.Root.Nontouchscreen (root)
@@ -35,8 +36,8 @@ import qualified Model.Model as MM
 
 
 makeFieldsNoPrefix ''MM.LiteSet
-makeFieldsNoPrefix ''MM.Set
 makeFieldsNoPrefix ''MM.Settings
+makeFieldsNoPrefix ''Set
 
 #ifndef __GHCJS__
 runApp :: M.JSM () -> IO ()
@@ -59,7 +60,7 @@ main = runApp $ do
     langMemorizerName <- valToStr jsValLangMemorizerName
     memorizing <- M.getLocalStorage
         $ ms "memorizing" :: M.JSM (Either String MM.Memorizing)
-    sets' <- M.getLocalStorage $ ms "sets" :: M.JSM (Either String [MM.Set])
+    sets' <- M.getLocalStorage $ ms "sets" :: M.JSM (Either String [Set])
     settings' <- M.getLocalStorage $ ms "settings" :: M.JSM (Either String MM.Settings)
     statistics' <- M.getLocalStorage
         $ ms "statistics" :: M.JSM (Either String [[MM.SetResult]])

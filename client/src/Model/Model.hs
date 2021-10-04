@@ -12,16 +12,16 @@ module Model.Model
     , Pages          (..)
     , Pagination     (..)
     , SetResultStep  (..)
-    , Set            (..)
     , SetResult      (..)
     , Settings       (..)
-    , Unit           (..)
     ) where
 
 import Data.Aeson (FromJSON (), ToJSON ())
 import GHC.Generics (Generic ())
 import Miso (URI ())
 import Miso.String (MisoString ())
+
+import Common (Set (), Unit ())
 
 
 data EditedSet = EditedSet
@@ -87,11 +87,6 @@ data SetResultStep = SetResultStep
     , _unitIx  :: Int
     } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
 
-data Set = Set
-    { _name  :: MisoString
-    , _units :: Maybe [Unit]
-    } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
-
 data SetResult = SetResult
     { _setIx :: Int
     , _steps :: [SetResultStep]
@@ -104,9 +99,4 @@ data Settings = Settings
     , _setsPageCount
     , _statisticsPageCount
     , _unitsPageCount      :: String
-    } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
-
-data Unit = Unit
-    { _text       :: MisoString
-    , _translates :: [MisoString]
     } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)

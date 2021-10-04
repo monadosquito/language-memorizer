@@ -11,7 +11,9 @@ module Views.Smart.Statistics.Common
 import Control.Lens ((^.), (^?))
 import Control.Lens.Combinators (_Just, ix, non, to)
 import Control.Lens.TH (makeFieldsNoPrefix)
+import Miso.String (ms)
 
+import Common (Set (), Unit (Unit))
 import Model.Action (Action (), Paginated (Statistics))
 import Views.Smart.PageSwitcher.Common (pageSwitcher)
 import Utils (BemClass (BemClass), bemClass, darkMode', paginate, setResultsIsDone)
@@ -25,10 +27,10 @@ makeFieldsNoPrefix ''MM.Pages
 makeFieldsNoPrefix ''MM.Pagination
 makeFieldsNoPrefix ''MM.Model
 makeFieldsNoPrefix ''MM.SetResultStep
-makeFieldsNoPrefix ''MM.Set
 makeFieldsNoPrefix ''MM.SetResult
 makeFieldsNoPrefix ''MM.Settings
-makeFieldsNoPrefix ''MM.Unit
+makeFieldsNoPrefix ''Set
+makeFieldsNoPrefix ''Unit
 
 statistics' :: BemClass -> MM.Model -> M.View Action
 statistics' bemClass_ model = M.main_
@@ -60,7 +62,7 @@ statistics' bemClass_ model = M.main_
                 $ map
                     (\(MM.SetResult setIx' steps') -> M.li_ []
                         [ M.span_ []
-                            [ M.text $ model ^? sets.ix setIx'.name ^. non ""
+                            [ M.text $ model ^? sets.ix setIx'.name ^. non "".to ms
                             ]
                         , M.ul_
                             [ M.class_ . bemClass "StepList" $ BemClass "Statistics" [] []
@@ -68,7 +70,7 @@ statistics' bemClass_ model = M.main_
                             $ map (\(MM.SetResultStep success' unitIx') ->
                                 let unit = model
                                         ^? sets.ix setIx'.units._Just.ix unitIx'
-                                        ^. non (MM.Unit "" [])
+                                        ^. non (Unit "" [])
                                 in M.li_
                                     [ M.class_ . bemClass "Form" $ BemClass
                                         "Statistics"
@@ -79,7 +81,7 @@ statistics' bemClass_ model = M.main_
                                         [ M.class_ . bemClass "FormField"
                                             $ BemClass "Form" [] []
                                         ]
-                                        [ M.text $ unit ^. text
+                                        [ M.text $ unit ^. text.to ms
                                         ]
                                     , M.ul_
                                         [ M.class_ . bemClass "FieldList"
@@ -90,7 +92,7 @@ statistics' bemClass_ model = M.main_
                                                 [ M.class_ . bemClass "FormField"
                                                     $ BemClass "Form" [] []
                                                 ]
-                                                [ M.text translate
+                                                [ M.text $ translate ^. to ms
                                                 ]
                                             ])
                                         $ unit ^. translates

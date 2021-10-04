@@ -20,7 +20,7 @@ import Data.Maybe (listToMaybe)
 import Miso.String (fromMisoString, ms)
 import System.Environment (getEnv)
 
-import Common (LanguageMemorizer ())
+import Common (LanguageMemorizer (), Set (Set), Unit (Unit))
 import Utils (formData, listedStep, pagesCount, setResultsIsDone)
 
 import qualified Language.Javascript.JSaddle as LJJ
@@ -37,21 +37,21 @@ makeFieldsNoPrefix ''MM.Memorizing
 makeFieldsNoPrefix ''MM.Model
 makeFieldsNoPrefix ''MM.Pages
 makeFieldsNoPrefix ''MM.Pagination
-makeFieldsNoPrefix ''MM.Set
 makeFieldsNoPrefix ''MM.SetResult
 makeFieldsNoPrefix ''MM.SetResultStep
 makeFieldsNoPrefix ''MM.Settings
-makeFieldsNoPrefix ''MM.Unit
+makeFieldsNoPrefix ''Set
+makeFieldsNoPrefix ''Unit
 
 updateModel :: MA.Action -> MM.Model -> M.Effect MA.Action MM.Model
 updateModel MA.AddSet                                                model = model M.<# do
-    (set:_) <- formData (ms "add-set-form") True :: M.JSM [MM.Set]
+    (set:_) <- formData (ms "add-set-form") True :: M.JSM [Set]
     pure $ MA.UpdateSets Nothing set
 updateModel (MA.AddTranslate unitIx')                                model = M.noEff
     $ model&sets.ix (model ^. activeSetIx).units._Just.ix unitIx'.translates
-        %~ (++ [ ms "" ])
+        %~ (++ [ "" ])
 updateModel MA.AddUnit                                               model = model M.<# do
-    pure . MA.UpdateUnits (model ^. activeSetIx) $ MM.Unit (ms "") [ ms "" ]
+    pure . MA.UpdateUnits (model ^. activeSetIx) $ Unit "" [ "" ]
 updateModel (MA.ChangeUri uri')                                      model =
     (model&menuIsVisible .~ False) M.<# (M.pushURI uri' >> pure MA.DoNothing)
 updateModel (MA.CheckAnswer MA.Text' text')                          model =
@@ -60,7 +60,7 @@ updateModel (MA.CheckAnswer MA.Text' text')                          model =
             $ if model
                 ^? sets.ix (memorizing' ^. setIx)
                     .units._Just.ix (memorizing' ^. unitIx).text
-                ^. non (ms "").to (== text')
+                ^. non "".to ((== text') . ms)
             then MA.SelectRandomMemorizingUnit
             else MA.DoNothing)
   where
@@ -71,7 +71,7 @@ updateModel (MA.CheckAnswer MA.Translates translate)                 model =
             $ model
                 ^? sets.ix (model ^. memorizing.setIx)
                     .units._Just.ix (model ^. memorizing.unitIx)
-                    .translates.each.filtered (== translate))
+                    .translates.each.to ms.filtered (== translate))
 updateModel (MA.DeleteSet setIx')                                    model = (model
     &sets %~ (^.. traversed.ifiltered (\setIx'' _ -> setIx'' /= setIx'))
     &pagination.sets.count -~  isLastPageElem
@@ -124,8 +124,9 @@ updateModel (MA.EditSet editedUnitPart unitIx' editedUnitPartVal)    model = M.n
     editedUnit    = newModel ^.. editedSet.ixedUnits.traversed.filtered
         (\(unitIx'', _) -> unitIx'' == unitIx') ^? to listToMaybe._Just._2 ^. non zeroUnit
     newEditedUnit = case editedUnitPart of
-        MA.UnitText              -> editedUnit&text .~ editedUnitPartVal
-        MA.UnitTranslate transIx -> editedUnit&translates.ix transIx .~ editedUnitPartVal
+        MA.UnitText              -> editedUnit&text .~ fromMisoString editedUnitPartVal
+        MA.UnitTranslate transIx ->
+            editedUnit&translates.ix transIx .~ fromMisoString editedUnitPartVal
         _                        -> editedUnit
     newModel      =
         (if null $ model ^.. editedSet.ixedUnits.traversed.filtered
@@ -139,7 +140,7 @@ updateModel (MA.EditSet editedUnitPart unitIx' editedUnitPartVal)    model = M.n
                 )
             ])
         else model)
-    zeroUnit      = MM.Unit (ms "") []
+    zeroUnit      = Unit "" []
 updateModel MA.FailMemorizingStep                                    model = (model
     &memorizing.pause .~ True
     &memorizing.progress %~ (++ [ False ])
@@ -155,7 +156,7 @@ updateModel (MA.HandleUri uri')                                      model =
     M.noEff $ model&uri .~ uri'
 updateModel (MA.RefreshSet setIx')                                   model = (model
     &editedSet.ixedUnits .~ []
-    &editedSet.name .~ model ^? sets.ix setIx'.name ^. non (ms "")
+    &editedSet.name .~ model ^? sets.ix setIx'.name ^. non "".to ms
     &activeSetIx .~ setIx'
     ) M.<# pure MA.DoNothing
 updateModel MA.RepeatMemorizing                                      model = (model
@@ -190,7 +191,7 @@ updateModel MA.SaveSet                                               model = (mo
                 (\(editedUnitIx', _) -> editedUnitIx' == editedUnitIx))
         ^? _head . _2
         ^. non editedUnit)
-    &sets.ix activeSetIx'.name .~ model ^. editedSet.name
+    &sets.ix activeSetIx'.name .~ model ^. editedSet.name.to fromMisoString
     ) M.<# pure MA.SaveSets
   where
     activeSetIx' = model ^. activeSetIx
@@ -222,7 +223,7 @@ updateModel (MA.UpdateLanguageMemorizerName langMemorizerName')      model = M.n
 updateModel (MA.ShareSet setIx')                                     model = model M.<# do
     fetchOptions <- LJJ.create
     fetchOptions LJJ.<# "body"
-        $ ms . encode $ model ^? sets.ix setIx' ^. non (MM.Set (ms "") Nothing)
+        $ ms . encode $ model ^? sets.ix setIx' ^. non (Set "" Nothing)
     jsValAuthToken <- LJJ.jsg "localStorage" LJJ.# "getItem" $ [ "authToken" ]
     authToken <- fromMisoString <$> LJJ.valToStr jsValAuthToken
     fetchHeaders <- LJJ.create
@@ -235,7 +236,8 @@ updateModel (MA.ShareSet setIx')                                     model = mod
     pure MA.DoNothing
 updateModel (MA.ShowAnswer MA.Text')                                 model = (model
     &memorizing.answer .~ model
-            ^? sets.ix (memorizing' ^. setIx).units._Just.ix (memorizing' ^. unitIx).text
+            ^? sets.ix (memorizing' ^. setIx)
+                .units._Just.ix (memorizing' ^. unitIx).text.to ms
             ^. non (ms ""))
         M.<# pure MA.FailMemorizingStep
   where
@@ -244,7 +246,7 @@ updateModel (MA.ShowAnswer MA.Translates)                            model = (mo
     &memorizing.answer .~ model
             ^? sets.ix (memorizing' ^. setIx).units._Just.ix (memorizing' ^. unitIx)
                 .translates.ix (memorizing' ^. translateIx)
-            ^. non (ms ""))
+            ^. non "".to ms)
         M.<# pure MA.FailMemorizingStep
   where
     memorizing' = model ^. memorizing

@@ -30,14 +30,16 @@ import Language.Javascript.JSaddle (eval)
 import Miso.String (MisoString (), ms)
 import Miso (JSM (), parse)
 
+import Common (Set ())
+
 import qualified Model.Model as MM
 
 
 makeFieldsNoPrefix ''MM.LiteSet
 makeFieldsNoPrefix ''MM.Memorizing
 makeFieldsNoPrefix ''MM.Model
-makeFieldsNoPrefix ''MM.Set
 makeFieldsNoPrefix ''MM.Settings
+makeFieldsNoPrefix ''Set
 
 data BemClass
     = BemClass ParentName [BlockModifier] [ElementModifier]

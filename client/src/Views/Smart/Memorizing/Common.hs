@@ -12,6 +12,7 @@ import Control.Lens.Combinators (_Just, ix, non, to)
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Miso.String (ms)
 
+import Common (Set (), Unit ())
 import Utils (BemClass (BemClass), ElementModifier (), bemClass, darkMode')
 
 import qualified Miso as M
@@ -23,9 +24,9 @@ import qualified Model.Action as MA
 makeFieldsNoPrefix ''MM.LiteSet
 makeFieldsNoPrefix ''MM.Memorizing
 makeFieldsNoPrefix ''MM.Model
-makeFieldsNoPrefix ''MM.Set
 makeFieldsNoPrefix ''MM.Settings
-makeFieldsNoPrefix ''MM.Unit
+makeFieldsNoPrefix ''Set
+makeFieldsNoPrefix ''Unit
 
 memorizing' :: BemClass -> MM.Model -> M.View MA.Action
 memorizing' bemClass' model = M.main_
@@ -95,7 +96,7 @@ memorizing' bemClass' model = M.main_
                     MM.Text       -> MA.Text')
                 $ model'
                     ^? sets.ix (memorizing''' ^. setIx)
-                        .units._Just.ix (memorizing''' ^. unitIx).text
+                        .units._Just.ix (memorizing''' ^. unitIx).text.to ms
                     ^. non ""
         , M.type_ "button"
         , M.value_ "Continue"
@@ -116,7 +117,7 @@ memorizing' bemClass' model = M.main_
         , M.value_ "Show"
         ]
 
-    textMemorizing :: MM.Unit -> [M.View MA.Action]
+    textMemorizing :: Unit -> [M.View MA.Action]
     textMemorizing unit' =
         [ M.span_
             [ M.class_ . bemClass "Text" $ BemClass "Memorizing" [] []
@@ -137,12 +138,12 @@ memorizing' bemClass' model = M.main_
             ]
         ]
 
-    tranlatesMemorizing :: MM.Unit -> [M.View MA.Action]
+    tranlatesMemorizing :: Unit -> [M.View MA.Action]
     tranlatesMemorizing unit' =
         [ M.span_
             [ M.class_ . bemClass "Text" $ BemClass "Memorizing" [] []
             ]
-            [ M.text $ unit' ^. text
+            [ M.text $ unit' ^. text.to ms
             ]
         , M.form_ []
             [ M.input_
