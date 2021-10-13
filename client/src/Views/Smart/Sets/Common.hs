@@ -14,7 +14,7 @@ import Miso.String (ms)
 import Common (Set ())
 import Model.Action (Action (AddSet, DeleteSet, ShareSet), Paginated (Sets))
 import Model.Model (Model (), Pages (), Pagination (), Settings ())
-import Utils (BemClass (BemClass), bemClass, darkMode', paginate)
+import Utils (BemClass (BemClass), bemClass, darkMode', paginate, set')
 import Views.Smart.PageSwitcher.Common (pageSwitcher)
 import Views.Smart.Router.Utils (goSet)
 
@@ -34,14 +34,14 @@ sets' bemClass' model = M.main_
     [ M.ul_
         [ M.class_ $ bemClass "SetList" $ BemClass "Sets" [] []
         ]
-        . map (\(setIx, set') -> M.li_ 
+        . map (\(setIx, set'') -> M.li_
             [ M.class_ . bemClass "SetListItem" $ BemClass "Sets" [] []
             ]
             [ M.a_
                 [ M.class_ . bemClass "SetListItemName" $ BemClass "Sets" [] []
                 , M.onClick $ goSet setIx
                 ]
-                [ M.text $ set' ^. name.to ms
+                [ M.text $ set'' ^. to set'.name.to ms
                 ]
             , M.input_
                 [ M.class_ . bemClass "Button" $ BemClass "Sets" [ darkMode' model ] []

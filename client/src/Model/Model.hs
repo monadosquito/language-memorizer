@@ -21,7 +21,7 @@ import GHC.Generics (Generic ())
 import Miso (URI ())
 import Miso.String (MisoString ())
 
-import Common (Set (), Unit ())
+import Common (Set (), SharedSet (), Unit ())
 
 
 data EditedSet = EditedSet
@@ -46,7 +46,7 @@ data Model = Model
     , _memorizing        :: Memorizing
     , _menuIsVisible     :: Bool
     , _pagination        :: Pagination
-    , _sets              :: [Set]
+    , _sets              :: [Either Set SharedSet]
     , _settings          :: Settings
     , _statistics        :: [[SetResult]]
     , _uri               :: URI

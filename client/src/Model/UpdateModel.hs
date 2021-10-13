@@ -10,7 +10,7 @@ import Control.Concurrent (threadDelay)
 import Control.Lens ((%~), (&), (+~), (-~), (.~), (^.), (^..), (^?), _1, _2)
 import Control.Lens.Combinators (_head, ifiltered, ix, non, each, filtered, to, withIndex)
 import Control.Lens.Extras (is)
-import Control.Lens.Prism (_Just)
+import Control.Lens.Prism (_Just, _Left, _Right)
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Control.Lens.Traversal (traversed)
 import Control.Monad (replicateM)
@@ -20,8 +20,8 @@ import Data.Maybe (listToMaybe)
 import Miso.String (fromMisoString, ms)
 import System.Environment (getEnv)
 
-import Common (LanguageMemorizer (), Set (Set), Unit (Unit))
-import Utils (formData, listedStep, pagesCount, setResultsIsDone)
+import Common (LanguageMemorizer (), Set (Set), SharedSet (SharedSet), Unit (Unit))
+import Utils (formData, listedStep, pagesCount, set', setResultsIsDone)
 
 import qualified Language.Javascript.JSaddle as LJJ
 import qualified Miso as M
@@ -41,14 +41,15 @@ makeFieldsNoPrefix ''MM.SetResult
 makeFieldsNoPrefix ''MM.SetResultStep
 makeFieldsNoPrefix ''MM.Settings
 makeFieldsNoPrefix ''Set
+makeFieldsNoPrefix ''SharedSet
 makeFieldsNoPrefix ''Unit
 
 updateModel :: MA.Action -> MM.Model -> M.Effect MA.Action MM.Model
 updateModel MA.AddSet                                                model = model M.<# do
-    (set:_) <- formData (ms "add-set-form") True :: M.JSM [Set]
-    pure $ MA.UpdateSets Nothing set
+    (set'':_) <- formData (ms "add-set-form") True :: M.JSM [Set]
+    pure $ MA.UpdateSets Nothing $ Left set''
 updateModel (MA.AddTranslate unitIx')                                model = M.noEff
-    $ model&sets.ix (model ^. activeSetIx).units._Just.ix unitIx'.translates
+    $ model&sets.ix (model ^. activeSetIx)._Left.units._Just.ix unitIx'.translates
         %~ (++ [ "" ])
 updateModel MA.AddUnit                                               model = model M.<# do
     pure . MA.UpdateUnits (model ^. activeSetIx) $ Unit "" [ "" ]
@@ -58,7 +59,7 @@ updateModel (MA.CheckAnswer MA.Text' text')                          model =
     (model&memorizing.answer .~ text')
         M.<# (pure
             $ if model
-                ^? sets.ix (memorizing' ^. setIx)
+                ^? sets.ix (memorizing' ^. setIx).to set'
                     .units._Just.ix (memorizing' ^. unitIx).text
                 ^. non "".to ((== text') . ms)
             then MA.SelectRandomMemorizingUnit
@@ -69,7 +70,7 @@ updateModel (MA.CheckAnswer MA.Translates translate)                 model =
     (model&memorizing.answer .~ translate)
         M.<# (pure . maybe MA.DoNothing (const MA.SelectRandomMemorizingUnit)
             $ model
-                ^? sets.ix (model ^. memorizing.setIx)
+                ^? sets.ix (model ^. memorizing.setIx).to set'
                     .units._Just.ix (model ^. memorizing.unitIx)
                     .translates.each.to ms.filtered (== translate))
 updateModel (MA.DeleteSet setIx')                                    model = (model
@@ -86,25 +87,26 @@ updateModel (MA.DeleteSet setIx')                                    model = (mo
         then 1
         else 0)
 updateModel (MA.DeleteTranslate unitIx' transIx)                     model = M.noEff
-    $ model&sets.ix (model ^. activeSetIx).units._Just.ix unitIx'.translates
+    $ model&sets.ix (model ^. activeSetIx)._Left.units._Just.ix unitIx'.translates
         %~ (^.. traversed.ifiltered (\transIx' _ -> transIx' /= transIx))
 updateModel (MA.DeleteUnit unitIx')                                  model = M.batchEff
     (model
         &pagination.units.ix activeSetIx'.count -~ isLastPageElem
         &pagination.units.ix activeSetIx'.current -~ isLastPageElem
-        &sets.ix activeSetIx'.units._Just %~ (^.. traversed.ifiltered
-            (\unitIx'' _ -> unitIx'' /= unitIx'))
+        &sets.ix activeSetIx'._Left.units._Just %~ newUnits
+        &sets.ix activeSetIx'._Right.set.units._Just %~ newUnits
     )
     [ pure MA.SaveSets
     , pure . MA.UpdatePagination . MA.Part . MA.Units $ model ^. activeSetIx
     ]
   where
     isLastPageElem =
-        (if model ^? sets.ix activeSetIx'.units._Just.to length ^. non (-1)
+        (if model ^? sets.ix activeSetIx'.to set'.units._Just.to length ^. non (-1)
             == (model ^? pagination.units.ix activeSetIx'.count ^. non 0.to (subtract 1))
                 * model ^. settings.unitsPageCount.to read + 1
         then 1
         else 0)
+    newUnits       = (^.. traversed.ifiltered (\unitIx'' _ -> unitIx'' /= unitIx'))
     activeSetIx'   = model ^. activeSetIx
 updateModel MA.DoNothing                                             model = M.noEff model
 updateModel (MA.EditSet MA.Name _ name')                             model =
@@ -113,7 +115,8 @@ updateModel (MA.EditSet editedUnitPart unitIx' editedUnitPartVal)    model = M.n
     $ newModel
         &(if newEditedUnit
             == model
-                ^? sets.ix (model ^. activeSetIx).units._Just.ix unitIx' ^. non zeroUnit
+                ^? sets.ix (model ^. activeSetIx).to set'.units._Just.ix unitIx'
+                ^. non zeroUnit
             then editedSet.ixedUnits %~ (^.. traversed.filtered
                 (\(unitIx'', _) -> unitIx'' /= unitIx'))
             else editedSet.ixedUnits %~ (^.. traversed.to (\ixedEditedUnit ->
@@ -121,8 +124,8 @@ updateModel (MA.EditSet editedUnitPart unitIx' editedUnitPartVal)    model = M.n
                 then ixedEditedUnit&_2 .~ newEditedUnit
                 else ixedEditedUnit)))
   where
-    editedUnit    = newModel ^.. editedSet.ixedUnits.traversed.filtered
-        (\(unitIx'', _) -> unitIx'' == unitIx') ^? to listToMaybe._Just._2 ^. non zeroUnit
+    editedUnit    = newModel ^.. editedSet.ixedUnits.traversed.filtered (\(unitIx'', _) ->
+        unitIx'' == unitIx') ^? to listToMaybe._Just._2 ^. non zeroUnit
     newEditedUnit = case editedUnitPart of
         MA.UnitText              -> editedUnit&text .~ fromMisoString editedUnitPartVal
         MA.UnitTranslate transIx ->
@@ -135,7 +138,7 @@ updateModel (MA.EditSet editedUnitPart unitIx' editedUnitPartVal)    model = M.n
             [
                 ( unitIx'
                 , model
-                    ^? sets.ix (model ^. activeSetIx).units._Just.ix unitIx'
+                    ^? sets.ix (model ^. activeSetIx).to set'.units._Just.ix unitIx'
                     ^. non zeroUnit
                 )
             ])
@@ -156,7 +159,7 @@ updateModel (MA.HandleUri uri')                                      model =
     M.noEff $ model&uri .~ uri'
 updateModel (MA.RefreshSet setIx')                                   model = (model
     &editedSet.ixedUnits .~ []
-    &editedSet.name .~ model ^? sets.ix setIx'.name ^. non "".to ms
+    &editedSet.name .~ model ^? sets.ix setIx'.to set'.name ^. non "".to ms
     &activeSetIx .~ setIx'
     ) M.<# pure MA.DoNothing
 updateModel MA.RepeatMemorizing                                      model = (model
@@ -176,24 +179,28 @@ updateModel MA.RepeatMemorizing                                      model = (mo
     activeSetIxs' = model ^. settings.activeSetIxs
     liteSets'     = (model
         ^.. sets.traversed.ifiltered
-            (\setIx' set' ->
+            (\setIx' set''->
                 elem (show setIx') (model ^? settings.activeSetIxs._Just ^. non [])
-                    && (not . null $ set' ^? units._Just ^. non []))
+                    && (not . null $ set'' ^? to set'.units._Just ^. non []))
             .withIndex)
-        ^.. traversed.to (\(setIx', set') ->
-            MM.LiteSet setIx' [ 0..set' ^. units.non [].to ((subtract 1) . length) ])
+        ^.. traversed.to (\(setIx', set'') ->
+            MM.LiteSet setIx'
+                $ [ 0..set'' ^. to set'.units.non [].to ((subtract 1) . length) ])
     setResults    = activeSetIxs' ^.. _Just.each.to ((`MM.SetResult` []) . read)
 updateModel MA.SaveSet                                               model = (model
     &editedSet.ixedUnits .~ []
-    &sets.ix activeSetIx'.units._Just .~ model
-        ^.. sets.ix activeSetIx'.units._Just.traversed.withIndex.to
+    &sets.ix activeSetIx'._Left
+        .~ Set (model ^. editedSet.name.to fromMisoString) (Just newUnits)
+    &sets.ix activeSetIx'._Right.set
+        .~ Set (model ^. editedSet.name.to fromMisoString) (Just newUnits)
+    ) M.<# pure MA.SaveSets
+  where
+    newUnits     = model
+        ^.. sets.ix activeSetIx'.to set'.units._Just.traversed.withIndex.to
             (\(editedUnitIx, editedUnit) -> (model ^.. editedSet.ixedUnits.traversed.filtered
                 (\(editedUnitIx', _) -> editedUnitIx' == editedUnitIx))
         ^? _head . _2
         ^. non editedUnit)
-    &sets.ix activeSetIx'.name .~ model ^. editedSet.name.to fromMisoString
-    ) M.<# pure MA.SaveSets
-  where
     activeSetIx' = model ^. activeSetIx
 updateModel MA.SaveSets                                              model = model M.<#
     (M.setLocalStorage (ms "sets") (model ^. sets) >> pure MA.DoNothing)
@@ -211,19 +218,23 @@ updateModel MA.SelectRandomMemorizingUnit                            model = mod
         liteUnitIx   = randomIx randomNum1
             $ model ^? memorizing.liteSets.ix liteSetIx'.unitIxs ^. non [].to length
         translateIx' = randomIx randomNum2
-            $ model ^? sets.ix (liteSet ^. setIx).units._Just.ix unitIx'.translates
+            $ model
+                ^? sets.ix (liteSet ^. setIx).to set'.units._Just.ix unitIx'.translates
                 ^. non [].to length
         unitIx'      = liteSet ^? unitIxs.ix liteUnitIx ^. non (-1)
     pure $ MA.UpdateMemorizing liteSetIx' liteUnitIx translateIx'
   where
     randomIx :: Double -> Int -> Int
     randomIx randomNum' length' = floor $ randomNum' * fromIntegral length'
-updateModel (MA.UpdateLanguageMemorizerName langMemorizerName')      model = M.noEff
+updateModel (MA.SetLanguageMemorizerName langMemorizerName')         model = M.noEff
     $ model&langMemorizerName .~ Just langMemorizerName'
+updateModel (MA.SetNewSharedSetId sharedSetIx newSharedSetId)        model =
+    (model&sets.ix sharedSetIx._Right.Model.UpdateModel.id .~ newSharedSetId)
+        M.<# pure MA.SaveSets
 updateModel (MA.ShareSet setIx')                                     model = model M.<# do
     fetchOptions <- LJJ.create
     fetchOptions LJJ.<# "body"
-        $ ms . encode $ model ^? sets.ix setIx' ^. non (Set "" Nothing)
+        $ ms . encode $ model ^? sets.ix setIx'._Left ^. non (Set "" Nothing)
     jsValAuthToken <- LJJ.jsg "localStorage" LJJ.# "getItem" $ [ "authToken" ]
     authToken <- fromMisoString <$> LJJ.valToStr jsValAuthToken
     fetchHeaders <- LJJ.create
@@ -232,19 +243,32 @@ updateModel (MA.ShareSet setIx')                                     model = mod
     fetchOptions LJJ.<# "headers" $ fetchHeaders
     fetchOptions LJJ.<# "method" $ "POST"
     shareSetUrl <- liftIO $ getEnv "api_server_share_set_url"
-    _ <- LJJ.jsg2 "fetch" shareSetUrl fetchOptions
-    pure MA.DoNothing
+    respPromise <- LJJ.jsg2 "fetch" shareSetUrl fetchOptions
+    _ <- respPromise LJJ.# "then" $ LJJ.fun $ \_ _ [ resp ] -> do
+        textPromise <- resp LJJ.# "text" $ ()
+        _ <- textPromise LJJ.# "then" $ LJJ.fun $ \_ _ [ jsValSharedSetId ] -> do
+            sharedSetId <- fromMisoString <$> LJJ.valToStr jsValSharedSetId
+            _ <- LJJ.jsg "localStorage" LJJ.# "setItem" $ [ "tmpSharedSetId", sharedSetId ]
+            pure ()
+        pure ()
+    liftIO $ threadDelay 1000000
+    jsValTmpSharedSetId <- LJJ.jsg "localStorage" LJJ.# "getItem" $ [ "tmpSharedSetId" ]
+    sharedSetId <- LJJ.valToNumber jsValTmpSharedSetId
+    M.removeLocalStorage $ ms "tmpSharedSetId"
+    pure . MA.UpdateSets (Just setIx') . Right . SharedSet (round sharedSetId)
+        $ model ^? sets.ix setIx'._Left ^. non (Set "" Nothing)
 updateModel (MA.ShowAnswer MA.Text')                                 model = (model
     &memorizing.answer .~ model
             ^? sets.ix (memorizing' ^. setIx)
-                .units._Just.ix (memorizing' ^. unitIx).text.to ms
+                .to set'.units._Just.ix (memorizing' ^. unitIx).text.to ms
             ^. non (ms ""))
         M.<# pure MA.FailMemorizingStep
   where
     memorizing' = model ^. memorizing
 updateModel (MA.ShowAnswer MA.Translates)                            model = (model
     &memorizing.answer .~ model
-            ^? sets.ix (memorizing' ^. setIx).units._Just.ix (memorizing' ^. unitIx)
+            ^? sets.ix (memorizing' ^. setIx)
+                .to set'.units._Just.ix (memorizing' ^. unitIx)
                 .translates.ix (memorizing' ^. translateIx)
             ^. non "".to ms)
         M.<# pure MA.FailMemorizingStep
@@ -286,7 +310,7 @@ updateModel MA.SignIn                                                model = mod
     pure
         $ if jsValLangMemorizerNameIsNull
         then MA.DoNothing
-        else MA.UpdateLanguageMemorizerName langMemorizerName' 
+        else MA.SetLanguageMemorizerName langMemorizerName' 
 updateModel MA.SignOut                                               model =
     (model&langMemorizerName .~ Nothing)
         M.<# do
@@ -394,26 +418,56 @@ updateModel (MA.UpdatePagination (MA.Part MA.Statistics))            model = M.n
             (model ^. settings.statisticsPageCount.to read)
             $ (model ^. statistics.to length))
 updateModel (MA.UpdatePagination (MA.Part (MA.Units setIx')))        model = M.noEff
-    $ model
-        &pagination.units.ix setIx'.count .~ (pagesCount
-            (model ^. settings.unitsPageCount.to read)
-            $ (model ^? sets.ix setIx'.units._Just.to length) ^. non (-1))
+    $ model&pagination.units.ix setIx'.count .~ (pagesCount
+        (model ^. settings.unitsPageCount.to read)
+        $ (model ^? sets.ix setIx'.to set'.units._Just.to length) ^. non (-1))
 updateModel (MA.UpdatePagination MA.Whole)                           model =
     (model&pagination.units.traversed.withIndex %~ (\setPages@(setIx', _) ->
             setPages&_2.count .~ (pagesCount (model ^. settings.unitsPageCount.to read)
-                $ (model ^? sets.ix setIx'.units._Just.to length) ^. non (-1))))
+                $ (model ^? sets.ix setIx'.to set'.units._Just.to length) ^. non (-1))))
         M.<# pure (MA.UpdatePagination $ MA.Part MA.Sets)
-updateModel (MA.UpdateSets (Just setIx') set)                        model = M.batchEff
-    (model&sets.ix setIx' .~ set)
+updateModel (MA.UpdateSets (Just setIx') set'')                      model = M.batchEff
+    (model&sets.ix setIx' .~ set'')
     [ pure MA.SaveSets, pure . MA.UpdatePagination $ MA.Part MA.Sets ]
-updateModel (MA.UpdateSets Nothing      set)                         model = M.batchEff
-    (model&sets %~ (++ [ set ]))
+updateModel (MA.UpdateSets Nothing       set'')                      model = M.batchEff
+    (model&sets %~ (++ [ set'' ]))
     [ pure MA.SaveSets, pure . MA.UpdatePagination $ MA.Part MA.Sets ]
 updateModel (MA.UpdateSettings settings')                            model = M.batchEff
     (model&settings .~ settings')
     [ pure MA.RepeatMemorizing, pure $ MA.UpdatePagination MA.Whole ]
+updateModel (MA.UpdateSharedSet sharedSetIx)                         model = model M.<# do
+    fetchOptions <- LJJ.create
+    fetchOptions LJJ.<# "body"
+        $ ms . encode
+            $ model ^? sets.ix sharedSetIx._Right ^. non (SharedSet (-1) $ Set "" Nothing)
+    jsValAuthToken <- LJJ.jsg "localStorage" LJJ.# "getItem" $ [ "authToken" ]
+    authToken <- fromMisoString <$> LJJ.valToStr jsValAuthToken
+    fetchHeaders <- LJJ.create
+    fetchHeaders LJJ.<# "authorization" $ "Bearer " ++ authToken
+    fetchHeaders LJJ.<# "content-type" $ "application/json"
+    fetchOptions LJJ.<# "headers" $ fetchHeaders
+    fetchOptions LJJ.<# "method" $ "POST"
+    updateSharedSetUrl <- liftIO $ getEnv "api_server_update_shared_set_url"
+    respPromise <- LJJ.jsg2 "fetch" updateSharedSetUrl fetchOptions
+    _ <- respPromise LJJ.# "then" $ LJJ.fun $ \_ _ [ resp ] -> do
+        newSharedSetIdPromise <- resp LJJ.# "text" $ ()
+        _ <- newSharedSetIdPromise LJJ.# "then"
+            $ LJJ.fun $ \_ _ [ newSharedSetId ] ->
+                M.setLocalStorage (ms "tmpNewSharedSetId") =<< LJJ.valToStr newSharedSetId
+        pure ()
+    liftIO $ threadDelay 1000000
+    eitherNewSharedSetId <- M.getLocalStorage $ ms "tmpNewSharedSetId"
+        :: M.JSM (Either String String)
+    M.removeLocalStorage $ ms "tmpNewSharedSetId"
+    pure
+        $ either
+            (const MA.DoNothing)
+            ((MA.SetNewSharedSetId sharedSetIx) . read)
+            eitherNewSharedSetId
 updateModel (MA.UpdateUnits setIx' unit)                             model = M.batchEff
-    (model&sets.ix setIx'.units.non [] %~ (++ [ unit ]))
+    (model
+        &sets.ix setIx'._Left.units.non [] %~ (++ [ unit ])
+        &sets.ix setIx'._Right.set.units.non [] %~ (++ [ unit ]))
     [ pure MA.SaveSets
     , pure . MA.UpdatePagination . MA.Part $ MA.Units setIx'
     , if model ^. settings.activeSetIxs.non [].to ((elem setIx') . map read)

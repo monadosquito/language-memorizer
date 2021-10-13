@@ -5,24 +5,26 @@
 {-# LANGUAGE TemplateHaskell        #-}
 
 module Utils
-    ( BemClass        (..)
+    ( BemClass    (..)
     , ElementModifier ()
-    , FormMark        ()
-    , Page            ()
-    , PagesCount      ()
-    , SetIx           ()
-    , UnitIx          ()
+    , FormMark    ()
+    , Page        ()
+    , PagesCount  ()
+    , SetIx       ()
+    , UnitIx      ()
     , bemClass
     , darkMode'
     , formData
     , listedStep
     , pagesCount
     , paginate
+    , set'
     , setResultsIsDone
     ) where
 
 import Control.Lens ((^.), (^..), (^?))
 import Control.Lens.Combinators (_head, each, ix, non, to)
+import Control.Lens.Prism (_Just,)
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Control.Lens.Traversal (traversed)
 import Data.Aeson (FromJSON ())
@@ -30,7 +32,7 @@ import Language.Javascript.JSaddle (eval)
 import Miso.String (MisoString (), ms)
 import Miso (JSM (), parse)
 
-import Common (Set ())
+import Common (Set (), SharedSet (SharedSet))
 
 import qualified Model.Model as MM
 
@@ -103,10 +105,14 @@ paginate :: Page -> PagesCount -> [a] -> [a]
 paginate _    0           xs = xs
 paginate page pagesCount' xs = take pagesCount' $ drop (page * pagesCount') xs
 
+set' :: Either Set SharedSet -> Set
+set' (Left  set)               = set
+set' (Right (SharedSet _ set)) = set
+
 setResultsIsDone :: MM.Model -> Bool
 setResultsIsDone model =
-    and $ model ^? statistics._head.traversed.to (\(MM.SetResult setIx' steps') ->
-        steps' ^. to length == model ^? sets.ix setIx'.units.non [].to length ^. non (-1))
+    and $ model ^? statistics._head.traversed.to (\(MM.SetResult _ steps') ->
+        steps' ^. to length == model ^? sets.ix 0.to set'.units._Just ^. non [].to length)
 
 type BlockModifier   = Modifier
 type BlockName       = Name

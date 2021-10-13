@@ -9,15 +9,18 @@ import Common (LanguageMemorizer ())
 
 class DbConnection d where
     addLanguageMemorizer          :: d -> LanguageMemorizer -> IO Int64
-    addSet                        :: d -> SetName -> IO SetId
+    addSet                        :: d -> LanguageMemorizerId -> SetName -> IO SetId
     addTranslate                  :: d -> UnitId -> Text -> IO ()
     addUnit                       :: d -> SetId -> Text -> IO UnitId
     connect                       :: IO d
+    deleteSet                     :: d -> SetId -> IO ()
     getLanguageMemorizerId        :: d -> LanguageMemorizer -> IO (Maybe LanguageMemorizerId)
     getLanguageMemorizerIdAndName :: d -> LanguageMemorizer -> IO [(Int, String)]
-    withTransaction               :: d -> IO () -> IO ()
+    getSetOwnerId                 :: d -> SetId -> IO SetOwnerId
+    withTransaction               :: d -> IO a -> IO a
 type LanguageMemorizerId = Int
 type SetName             = String
 type SetId               = Int
+type SetOwnerId          = LanguageMemorizerId
 type Text                = String
 type UnitId              = Int

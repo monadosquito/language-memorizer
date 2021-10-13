@@ -12,7 +12,7 @@ module Model.Action
 import Miso (URI ())
 import Miso.String (MisoString ())
 
-import Common (Set (), Unit ())
+import Common (Set (), SharedSet (), Unit ())
 import Model.Model (Settings ())
 import Utils (Page (), SetIx (), UnitIx ())
 
@@ -36,6 +36,8 @@ data Action
     | SaveSets
     | SaveSettings
     | SelectRandomMemorizingUnit
+    | SetLanguageMemorizerName LanguageMemorizerName
+    | SetNewSharedSetId SharedSetIx SharedSetId
     | ShareSet SetIx
     | ShowAnswer MemorizingMode
     | SignIn
@@ -43,10 +45,10 @@ data Action
     | SignUp
     | SwitchPage PageSwitchWay Paginated
     | ToggleMenuVisibility
-    | UpdateLanguageMemorizerName LanguageMemorizerName
     | UpdatePagination PaginationUpdatingWay
-    | UpdateSets (Maybe SetIx) Set
+    | UpdateSets (Maybe SetIx) (Either Set SharedSet)
     | UpdateSettings Settings
+    | UpdateSharedSet SharedSetIx
     | UpdateMemorizing LiteSetIx TmpUnitIx TranslateIx
     | UpdateUnits SetIx Unit
     deriving stock (Eq, Show)
@@ -54,6 +56,8 @@ type Answer                = MisoString
 type EditedSetPartValue    = MisoString
 type LanguageMemorizerName = MisoString
 type LiteSetIx             = Int
+type SharedSetId           = Int
+type SharedSetIx           = Int
 type TmpUnitIx             = Int
 
 data EditedSetPart = Name | UnitText | UnitTranslate TranslateIx deriving stock (Eq, Show)

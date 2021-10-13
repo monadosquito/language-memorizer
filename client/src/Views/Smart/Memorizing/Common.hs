@@ -13,7 +13,7 @@ import Control.Lens.TH (makeFieldsNoPrefix)
 import Miso.String (ms)
 
 import Common (Set (), Unit ())
-import Utils (BemClass (BemClass), ElementModifier (), bemClass, darkMode')
+import Utils (BemClass (BemClass), ElementModifier (), bemClass, darkMode', set')
 
 import qualified Miso as M
 
@@ -95,7 +95,7 @@ memorizing' bemClass' model = M.main_
                     MM.Translates -> MA.Translates
                     MM.Text       -> MA.Text')
                 $ model'
-                    ^? sets.ix (memorizing''' ^. setIx)
+                    ^? sets.ix (memorizing''' ^. setIx).to set'
                         .units._Just.ix (memorizing''' ^. unitIx).text.to ms
                     ^. non ""
         , M.type_ "button"
@@ -158,7 +158,7 @@ memorizing' bemClass' model = M.main_
         ]
 
     maybeUnit       = model
-        ^? sets.ix (memorizing'' ^. setIx).units._Just.ix (memorizing'' ^. unitIx)
+        ^? sets.ix (memorizing'' ^. setIx).to set'.units._Just.ix (memorizing'' ^. unitIx)
     memorizing''    = model ^. memorizing
     memorizingMode' = model ^. settings.memorizingMode
 type Inactive = Bool

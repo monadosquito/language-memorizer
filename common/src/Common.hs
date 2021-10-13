@@ -6,6 +6,7 @@
 module Common
     ( LanguageMemorizer (..)
     , Set               (..)
+    , SharedSet         (..)
     , Unit              (..)
     ) where
 
@@ -23,6 +24,11 @@ data Set = Set
     { _name  :: String
     , _units :: Maybe [Unit]
     } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
+
+data SharedSet = SharedSet
+    { _id  :: Int
+    , _set :: Set
+    } deriving (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
 
 data Unit = Unit
     { _text       :: String

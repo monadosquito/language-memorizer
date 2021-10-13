@@ -12,6 +12,7 @@ module Adapters.Servant
     , run
     ) where
 
+import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON (), ToJSON ())
 import Data.ByteString.Lazy.Char8 (unpack)
@@ -20,7 +21,7 @@ import Data.CaseInsensitive (mk)
 import GHC.Generics (Generic ())
 import System.Environment (getEnv)
 
-import Common (LanguageMemorizer (), Set (Set), Unit (Unit))
+import Common (LanguageMemorizer (), Set (Set), SharedSet (SharedSet), Unit (Unit))
 import Ports.Database (DbConnection (..))
 import Ports.WwwServer (WwwServer (..))
 
@@ -38,7 +39,10 @@ type Api
         S.:> S.PostNoContent '[S.PlainText] S.NoContent
     S.:<|> SAS.Auth '[SAS.JWT] AuthTokenPayload
         S.:> "share-set" S.:> S.ReqBody '[S.JSON] Set
-            S.:> S.PostNoContent '[S.PlainText] S.NoContent
+            S.:> S.Post '[S.PlainText] String
+    S.:<|> SAS.Auth '[SAS.JWT] AuthTokenPayload
+        S.:> "update-shared-set" S.:> S.ReqBody '[S.JSON] SharedSet
+            S.:> S.Post '[S.PlainText] String
     S.:<|> S.Verb 'S.OPTIONS 200 '[S.PlainText] S.NoContent
 
 data AuthTokenPayload = AuthTokenPayload
@@ -73,23 +77,19 @@ instance WwwServer Servant where
       where
 
 server :: DbConnection d => d -> SAS.JWTSettings -> S.Server Api
-server dbConn jwtSettings = signIn S.:<|> signUp S.:<|> shareSet S.:<|> corsOptions
+server dbConn jwtSettings =
+    signIn S.:<|> signUp S.:<|> shareSet S.:<|> updateSharedSet S.:<|> corsOptions
   where
     corsOptions = pure S.NoContent
-    shareSet (SAS.Authenticated _) (Set name mbUnits) = do
+    shareSet
+        (SAS.Authenticated (AuthTokenPayload langMemorizerId))
+        (Set name mdUnits)
+        = do
         liftIO . withTransaction dbConn $ do
-            sharedSetId <- addSet dbConn name
-            case mbUnits of
-                Just units -> mapM_
-                    (\(Unit text translates) -> do
-                        unitId <- addUnit dbConn sharedSetId text
-                        mapM_ (addTranslate dbConn unitId) translates
-                        pure ())
-                    units
-                Nothing    -> pure ()
-            pure ()
-        pure S.NoContent
-    shareSet _                     _                       = S.throwError S.err401
+            sharedSetId <- addSet dbConn langMemorizerId name
+            addUnitsWithTrans sharedSetId mdUnits
+            pure $ show sharedSetId
+    shareSet _ _ = S.throwError S.err401
     signIn langMemorizer = do
         langMemorizersIdAndNames <- liftIO
             $ getLanguageMemorizerIdAndName dbConn langMemorizer
@@ -109,3 +109,25 @@ server dbConn jwtSettings = signIn S.:<|> signUp S.:<|> shareSet S.:<|> corsOpti
         if insertedRowsCount == 0
             then S.throwError S.err409
             else pure S.NoContent
+    updateSharedSet
+        (SAS.Authenticated (AuthTokenPayload langMemorizerId))
+        (SharedSet sharedSetId (Set name mdUnits))
+        = do
+        sharedSetOwnerId <- liftIO $ getSetOwnerId dbConn sharedSetId
+        if sharedSetOwnerId == langMemorizerId
+            then liftIO . withTransaction dbConn $ do
+                deleteSet dbConn sharedSetId
+                newSharedSetId <- liftIO $ addSet dbConn langMemorizerId name
+                addUnitsWithTrans newSharedSetId mdUnits
+                pure $ show newSharedSetId
+            else S.throwError S.err403
+    updateSharedSet _ _ = S.throwError S.err401
+
+    addUnitsWithTrans :: SharedSetId -> Maybe [Unit] -> IO ()
+    addUnitsWithTrans sharedSetId (Just units) = mapM_
+        (\(Unit text translates) -> do
+            unitId <- addUnit dbConn sharedSetId text
+            void $ mapM_ (addTranslate dbConn unitId) translates)
+        units
+    addUnitsWithTrans _           Nothing      = pure ()
+type SharedSetId = Int

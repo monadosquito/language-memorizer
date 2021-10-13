@@ -15,7 +15,7 @@ import Miso.String (ms)
 import Common (Set ())
 import Model.Action (Action (SaveSettings))
 import Model.Model (MemorizingMode (..), Model (), Settings ())
-import Utils (BemClass (BemClass), bemClass, darkMode')
+import Utils (BemClass (BemClass), bemClass, darkMode', set')
 
 import qualified Miso as M
 
@@ -48,7 +48,7 @@ settings' bemClass' model = M.main_
                     , M.value_ $ ms setIx
                     ]
                     [ M.span_ []
-                        [ M.text $ set ^. name.to ms
+                        [ M.text $ set ^. to set'.name.to ms
                         ]
                     ]
                 )

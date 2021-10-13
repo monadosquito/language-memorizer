@@ -26,11 +26,11 @@ instance DbConnection PostgreSQLConn where
             \ON CONFLICT DO NOTHING"
             (email, name, password)
 
-    addSet (PostgreSQLConn postgreSQLConn) setName =
+    addSet (PostgreSQLConn postgreSQLConn) langMemorizerId setName =
         (DPS.fromOnly . head) <$> (DPS.query
             postgreSQLConn
-            "INSERT INTO set (name) VALUES (?) RETURNING id"
-            $ DPS.Only setName :: IO [DPS.Only Int])
+            "INSERT INTO set (owner_id, name) VALUES (?, ?) RETURNING id"
+            (langMemorizerId, setName) :: IO [DPS.Only Int])
 
     addTranslate (PostgreSQLConn postgreSQLConn) unitId text = void $ DPS.execute
         postgreSQLConn
@@ -57,6 +57,10 @@ instance DbConnection PostgreSQLConn where
             , DPS.connectUser     = databaseUserName
             })
 
+    deleteSet (PostgreSQLConn postgreSQLConn) setId =
+        void . DPS.execute postgreSQLConn "DELETE FROM set WHERE id = ?"
+            $ DPS.Only setId
+
     getLanguageMemorizerId
         (PostgreSQLConn postgreSQLConn)
         (LanguageMemorizer email _ password)
@@ -73,6 +77,13 @@ instance DbConnection PostgreSQLConn where
             postgreSQLConn
             "SELECT id, name FROM lang_memorizer WHERE email = ? AND password = ?"
             (email, password)
+
+    getSetOwnerId (PostgreSQLConn postgreSQLConn) sharedSetId =
+        (head . map DPS.fromOnly)
+            <$> (DPS.query
+                postgreSQLConn
+                "SELECT owner_id FROM set WHERE id = ?"
+                $ DPS.Only sharedSetId :: IO [DPS.Only Int])
 
     withTransaction (PostgreSQLConn postgreSQLConn) postgreSQLAction =
         DPS.withTransaction postgreSQLConn postgreSQLAction

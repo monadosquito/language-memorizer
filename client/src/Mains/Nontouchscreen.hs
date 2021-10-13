@@ -17,15 +17,16 @@ import Text.Sass.Compilation (StringResult, compileFile)
 import Text.Sass.Options (defaultSassOptions)
 #endif
 import Control.Lens ((^.), (^..), (^?))
+import Control.Lens.Combinators (to)
 import Control.Lens.Extras (is)
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Language.Javascript.JSaddle ((#), jsg, valIsNull, valToStr)
 import Miso.String (ms)
 import System.Environment (getEnv)
 
-import Common (Set ())
+import Common (Set (), SharedSet ())
 import Model.UpdateModel (updateModel)
-import Utils (pagesCount)
+import Utils (pagesCount, set')
 import Views.Dumb.Providing.Root.Nontouchscreen (root)
 
 import qualified Control.Lens.Combinators as CLC
@@ -60,7 +61,7 @@ main = runApp $ do
     langMemorizerName <- valToStr jsValLangMemorizerName
     memorizing <- M.getLocalStorage
         $ ms "memorizing" :: M.JSM (Either String MM.Memorizing)
-    sets' <- M.getLocalStorage $ ms "sets" :: M.JSM (Either String [Set])
+    sets' <- M.getLocalStorage $ ms "sets" :: M.JSM (Either String [Either Set SharedSet])
     settings' <- M.getLocalStorage $ ms "settings" :: M.JSM (Either String MM.Settings)
     statistics' <- M.getLocalStorage
         $ ms "statistics" :: M.JSM (Either String [[MM.SetResult]])
@@ -100,7 +101,7 @@ main = runApp $ do
                     (settings ^. statisticsPageCount.CLC.to read)
                     $ statistics ^. CLC.to length
                 , _units      = sets
-                    ^.. CLC.each.units.CLC.non [].CLC.to
+                    ^.. CLC.each.to set'.units.CLC.non [].CLC.to
                         ( MM.Pages 0
                         . (pagesCount $ settings ^. unitsPageCount.CLC.to read)
                         . length

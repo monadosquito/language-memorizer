@@ -16,7 +16,7 @@ import Miso.String (ms)
 import Common (Set (), Unit (Unit))
 import Model.Action (Action (), Paginated (Statistics))
 import Views.Smart.PageSwitcher.Common (pageSwitcher)
-import Utils (BemClass (BemClass), bemClass, darkMode', paginate, setResultsIsDone)
+import Utils (BemClass (BemClass), bemClass, darkMode', paginate, set', setResultsIsDone)
 
 import qualified Miso as M
 
@@ -62,14 +62,14 @@ statistics' bemClass_ model = M.main_
                 $ map
                     (\(MM.SetResult setIx' steps') -> M.li_ []
                         [ M.span_ []
-                            [ M.text $ model ^? sets.ix setIx'.name ^. non "".to ms
+                            [ M.text $ model ^? sets.ix setIx'.to set'.name ^. non "".to ms
                             ]
                         , M.ul_
                             [ M.class_ . bemClass "StepList" $ BemClass "Statistics" [] []
                             ]
                             $ map (\(MM.SetResultStep success' unitIx') ->
                                 let unit = model
-                                        ^? sets.ix setIx'.units._Just.ix unitIx'
+                                        ^? sets.ix setIx'.to set'.units._Just.ix unitIx'
                                         ^. non (Unit "" [])
                                 in M.li_
                                     [ M.class_ . bemClass "Form" $ BemClass
