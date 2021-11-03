@@ -7,13 +7,14 @@ module Model.Action
     , Paginated             (..)
     , PaginationUpdatingWay (..)
     , PageSwitchWay         (..)
+    , SetsType              (..)
     ) where
 
 import Miso (URI ())
 import Miso.String (MisoString ())
 
-import Common (Set (), SharedSet (), Unit ())
-import Model.Model (Settings ())
+import Common (LiteSharedSet (), Set (), SharedSet (), Unit ())
+import Model.Model (BeingDownloadedSet (), DownloadedSet (), Settings ())
 import Utils (Page (), SetIx (), UnitIx ())
 
 
@@ -27,6 +28,7 @@ data Action
     | DeleteTranslate UnitIx TranslateIx
     | DeleteUnit UnitIx
     | DoNothing
+    | DownloadSharedSet SetIx
     | EditSet EditedSetPart UnitIx EditedSetPartValue
     | FailMemorizingStep
     | HandleUri URI
@@ -36,17 +38,20 @@ data Action
     | SaveSets
     | SaveSettings
     | SelectRandomMemorizingUnit
+    | SetDownloadedSet
     | SetLanguageMemorizerName LanguageMemorizerName
+    | SetLiteSharedSets [LiteSharedSet]
     | SetNewSharedSetId SharedSetIx SharedSetId
     | ShareSet SetIx
     | ShowAnswer MemorizingMode
     | SignIn
     | SignOut
     | SignUp
+    | SwitchActiveSetsType SetsType
     | SwitchPage PageSwitchWay Paginated
     | ToggleMenuVisibility
     | UpdatePagination PaginationUpdatingWay
-    | UpdateSets (Maybe SetIx) (Either Set SharedSet)
+    | UpdateSets GoingSet (Maybe SetsType) (Maybe SetIx) Set'
     | UpdateSettings Settings
     | UpdateSharedSet SharedSetIx
     | UpdateMemorizing LiteSetIx TmpUnitIx TranslateIx
@@ -54,8 +59,11 @@ data Action
     deriving stock (Eq, Show)
 type Answer                = MisoString
 type EditedSetPartValue    = MisoString
+type GoingSet              = Bool
 type LanguageMemorizerName = MisoString
 type LiteSetIx             = Int
+type Set'                  =
+    Either Set (Either SharedSet (Either BeingDownloadedSet DownloadedSet))
 type SharedSetId           = Int
 type SharedSetIx           = Int
 type TmpUnitIx             = Int
@@ -68,6 +76,8 @@ data MemorizingMode = Text' | Translates deriving stock (Eq, Show)
 
 data PageSwitchWay = First | Jump Page | Last | Next | Previous deriving stock (Eq, Show)
 
-data Paginated = Sets | Statistics | Units SetIx deriving stock (Eq, Show)
+data Paginated = Sets SetsType | Statistics | Units SetIx deriving stock (Eq, Show)
 
 data PaginationUpdatingWay = Whole | Part Paginated deriving stock (Eq, Show)
+
+data SetsType = Downloaded | MyLocal | MyShared | TheirShared deriving stock (Eq, Show)

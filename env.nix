@@ -1,6 +1,9 @@
 {
   client = rec {
     common = rec {
+      api_server_get_shared_set_url = "${api_server_url}/get-shared-set";
+      api_server_get_shared_sets_ids_and_names_url =
+        "${api_server_url}/get-shared-sets-ids-and-names";
       api_server_sign_in_url = "${api_server_url}/sign-in";
       api_server_sign_up_url = "${api_server_url}/sign-up";
       api_server_share_set_url = "${api_server_url}/share-set";

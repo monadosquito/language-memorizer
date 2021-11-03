@@ -4,16 +4,21 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 
 module Model.Model
-    ( EditedSet      (..)
-    , LiteSet        (..)
-    , Memorizing     (..)
-    , MemorizingMode (..)
-    , Model          (..)
-    , Pages          (..)
-    , Pagination     (..)
-    , SetResultStep  (..)
-    , SetResult      (..)
-    , Settings       (..)
+    ( BeingDownloadedSet    (..)
+    , DownloadedSet         (..)
+    , EditedSet             (..)
+    , LiteLanguageMemorizer (..)
+    , LiteSet               (..)
+    , Memorizing            (..)
+    , MemorizingMode        (..)
+    , Model                 (..)
+    , Pages                 (..)
+    , Pagination            (..)
+    , SetResultStep         (..)
+    , SetResult             (..)
+    , SetsPagination        (..)
+    , SetsType              (..)
+    , Settings              (..)
     ) where
 
 import Data.Aeson (FromJSON (), ToJSON ())
@@ -21,8 +26,14 @@ import GHC.Generics (Generic ())
 import Miso (URI ())
 import Miso.String (MisoString ())
 
-import Common (Set (), SharedSet (), Unit ())
+import Common (LiteSharedSet (), Set (), SharedSet (), Unit ())
 
+
+newtype BeingDownloadedSet = BeingDownloadedSet SharedSet
+    deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
+
+newtype DownloadedSet = DownloadedSet { _sharedSet :: SharedSet }
+    deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
 
 data EditedSet = EditedSet
     { _name      :: MisoString
@@ -34,6 +45,11 @@ data MemorizingMode
     | Translates
     deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
 
+data LiteLanguageMemorizer = LiteLanguageMemorizer
+    { _langMemorizerId   :: Int
+    , _langMemorizerName :: MisoString
+    } deriving anyclass (FromJSON) deriving stock (Eq, Generic, Show)
+
 data LiteSet = LiteSet
     { _setIx   :: Int
     , _unitIxs :: [Int]
@@ -41,18 +57,23 @@ data LiteSet = LiteSet
 
 data Model = Model
     { _activeSetIx       :: SetIx
+    , _activeSetsType    :: SetsType
     , _editedSet         :: EditedSet
-    , _langMemorizerName :: Maybe MisoString
+    , _langMemorizerName :: Maybe LanguageMemorizerName
+    , _liteSharedSets    :: [LiteSharedSet]
     , _memorizing        :: Memorizing
     , _menuIsVisible     :: Bool
     , _pagination        :: Pagination
-    , _sets              :: [Either Set SharedSet]
+    , _sets              :: Sets
     , _settings          :: Settings
     , _statistics        :: [[SetResult]]
     , _uri               :: URI
     } deriving stock (Eq, Show)
-type SetIx  = Int
-type UnitIx = Int
+type LanguageMemorizerName = MisoString
+type Sets                  =
+    [Either Set (Either SharedSet (Either BeingDownloadedSet DownloadedSet))]
+type SetIx                 = Int
+type UnitIx                = Int
 
 data LanguageMemorizer = LanguageMemorizer
     { _email
@@ -77,7 +98,7 @@ data Pages = Pages
     } deriving stock (Eq, Show)
 
 data Pagination = Pagination
-    { _sets       :: Pages
+    { _sets       :: SetsPagination
     , _statistics :: Pages
     , _units      :: [Pages]
     } deriving stock (Eq, Show)
@@ -91,6 +112,15 @@ data SetResult = SetResult
     { _setIx :: Int
     , _steps :: [SetResultStep]
     } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
+
+data SetsPagination = SetsPagination
+    { _downloaded  :: Pages
+    , _myLocal     :: Pages
+    , _myShared    :: Pages
+    , _theirShared :: Pages
+    } deriving stock (Eq, Show)
+
+data SetsType = Downloaded | Local | MyShared | Shared deriving stock (Eq, Show)
 
 data Settings = Settings
     { _activeSetIxs        :: Maybe [String]

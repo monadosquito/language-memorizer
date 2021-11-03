@@ -5,12 +5,14 @@
 
 module Common
     ( LanguageMemorizer (..)
+    , LiteSharedSet     (..)
     , Set               (..)
     , SharedSet         (..)
     , Unit              (..)
     ) where
 
 import Data.Aeson (FromJSON (), ToJSON ())
+import Database.PostgreSQL.Simple (FromRow ())
 import GHC.Generics (Generic ())
 
 
@@ -19,6 +21,11 @@ data LanguageMemorizer = LanguageMemorizer
     , _name
     , _password :: String
     } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
+
+data LiteSharedSet = LiteSharedSet
+    { _sharedSetId   :: Int
+    , _sharedSetName :: String
+    } deriving anyclass (FromJSON, FromRow, ToJSON) deriving stock (Eq, Generic, Show)
 
 data Set = Set
     { _name  :: String

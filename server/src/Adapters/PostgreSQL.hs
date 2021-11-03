@@ -78,12 +78,32 @@ instance DbConnection PostgreSQLConn where
             "SELECT id, name FROM lang_memorizer WHERE email = ? AND password = ?"
             (email, password)
 
-    getSetOwnerId (PostgreSQLConn postgreSQLConn) sharedSetId =
+    getSetName (PostgreSQLConn postgreSQLConn) setId = (DPS.fromOnly . head)
+        <$> (DPS.query
+            postgreSQLConn
+            "SELECT name FROM set WHERE id = ?"
+            $ DPS.Only setId)
+
+    getSetOwnerId (PostgreSQLConn postgreSQLConn) setId =
         (head . map DPS.fromOnly)
             <$> (DPS.query
                 postgreSQLConn
                 "SELECT owner_id FROM set WHERE id = ?"
-                $ DPS.Only sharedSetId :: IO [DPS.Only Int])
+                $ DPS.Only setId :: IO [DPS.Only Int])
+
+    getSetUnits (PostgreSQLConn postgreSQLConn) setId = DPS.query
+        postgreSQLConn "SELECT id, text FROM unit WHERE set_id = ?"
+        $ DPS.Only setId
+
+    getSetsIdsAndNames (PostgreSQLConn postgreSQLConn) = DPS.query_
+        postgreSQLConn
+        "SELECT id, name FROM set"
+
+    getTranslatesTexts (PostgreSQLConn postgreSQLConn) unitId = (map DPS.fromOnly)
+        <$> (DPS.query
+            postgreSQLConn
+            "SELECT text FROM translate WHERE unit_id = ?"
+            $ DPS.Only unitId :: IO [DPS.Only String])
 
     withTransaction (PostgreSQLConn postgreSQLConn) postgreSQLAction =
         DPS.withTransaction postgreSQLConn postgreSQLAction

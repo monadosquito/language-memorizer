@@ -1,3 +1,5 @@
+@import '../../Dumb/Button/Common'
+
 .Sets
   background: #FEF9FF
   display: flex
@@ -25,8 +27,6 @@
 
   &-SetList
     background: #F2DFD7
-    border-top-left-radius: 8px
-    border-top-right-radius: 8px
     display: flex
     flex: 1
     flex-basis: 60%
@@ -66,3 +66,44 @@
 
     &Field
       flex-basis: 80%
+
+  &-Tab
+    @extend .Button
+
+    border-radius: 0
+    padding-left: 2vw
+    padding-right: 2vw
+
+    &_darkMode
+      background: #2C3D55
+      color: #6A687A
+
+    &_darkMode.Sets-Tab_active
+      background: #3E4C5E
+      color: #84828F
+
+    &_active
+      background: linear-gradient(#9F9FED, #FEF9FF)
+
+    &:first-child, &:last-child
+      padding-left: 4vw
+      padding-right: 4vw
+
+    &:first-child
+      border-top-left-radius: 8px
+
+    &:last-child
+      border-top-right-radius: 8px
+
+  &-TabList
+    background: #F2DFD7
+    border-top-left-radius: 8px
+    border-top-right-radius: 8px
+    display: flex
+    justify-content: center
+    list-style: none
+    margin: 0
+    padding: 2vh 2vw
+
+    &_darkMode
+      background: #536271

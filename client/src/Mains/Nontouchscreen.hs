@@ -10,17 +10,16 @@ module Nontouchscreen
     ) where
 
 #ifndef __GHCJS__
-import Language.Javascript.JSaddle ((!), (<#))
 import Language.Javascript.JSaddle.Warp (run)
 import System.Directory (makeAbsolute)
 import Text.Sass.Compilation (StringResult, compileFile)
 import Text.Sass.Options (defaultSassOptions)
 #endif
 import Control.Lens ((^.), (^..), (^?))
-import Control.Lens.Combinators (to)
+import Control.Lens.Combinators (_Left, to)
 import Control.Lens.Extras (is)
 import Control.Lens.TH (makeFieldsNoPrefix)
-import Language.Javascript.JSaddle ((#), jsg, valIsNull, valToStr)
+import Language.Javascript.JSaddle ((!), (#), (<#), jsg, valIsNull, valToStr)
 import Miso.String (ms)
 import System.Environment (getEnv)
 
@@ -36,9 +35,12 @@ import qualified Model.Action as MA
 import qualified Model.Model as MM
 
 
+makeFieldsNoPrefix ''MM.DownloadedSet
 makeFieldsNoPrefix ''MM.LiteSet
+makeFieldsNoPrefix ''MM.SetsPagination
 makeFieldsNoPrefix ''MM.Settings
 makeFieldsNoPrefix ''Set
+makeFieldsNoPrefix ''SharedSet
 
 #ifndef __GHCJS__
 runApp :: M.JSM () -> IO ()
@@ -61,7 +63,13 @@ main = runApp $ do
     langMemorizerName <- valToStr jsValLangMemorizerName
     memorizing <- M.getLocalStorage
         $ ms "memorizing" :: M.JSM (Either String MM.Memorizing)
-    sets' <- M.getLocalStorage $ ms "sets" :: M.JSM (Either String [Either Set SharedSet])
+    sets' <- M.getLocalStorage $ ms "sets"
+        :: M.JSM
+            (Either
+                String
+                [Either
+                    Set
+                    (Either SharedSet (Either MM.BeingDownloadedSet MM.DownloadedSet))])
     settings' <- M.getLocalStorage $ ms "settings" :: M.JSM (Either String MM.Settings)
     statistics' <- M.getLocalStorage
         $ ms "statistics" :: M.JSM (Either String [[MM.SetResult]])
@@ -79,9 +87,11 @@ main = runApp $ do
         , logLevel      = M.Off
         , model         = MM.Model
             { _activeSetIx       = -1
+            , _activeSetsType    = MM.Local
             , _editedSet         = MM.EditedSet (ms "") [] 
             , _langMemorizerName =
                 if jsValLangMemorizerNameIsNull then Nothing else Just langMemorizerName
+            , _liteSharedSets    = []
             , _memorizing        = memorizing ^? CLC._Right ^. CLC.non (MM.Memorizing
                 { _answer          = ms ""
                 , _liteSets        = []
@@ -94,9 +104,20 @@ main = runApp $ do
                 })
             , _menuIsVisible     = False
             , _pagination        = MM.Pagination
-                { _sets       = MM.Pages 0 . pagesCount
-                    (settings ^. setsPageCount.CLC.to read)
-                    $ sets ^. CLC.to length
+                { _sets       = MM.SetsPagination
+                    { _downloaded  = MM.Pages 0 . pagesCount
+                        (settings ^. setsPageCount.CLC.to read)
+                        $ sets
+                            ^.. CLC.traversed.CLC._Right.CLC._Right.CLC._Right
+                            ^. CLC.to length
+                    , _myLocal     = MM.Pages 0 . pagesCount
+                        (settings ^. setsPageCount.CLC.to read)
+                        $ sets ^.. CLC.traversed.CLC._Left ^. CLC.to length
+                    , _myShared    = MM.Pages 0 . pagesCount
+                        (settings ^. setsPageCount.CLC.to read)
+                        $ sets ^.. CLC.traversed.CLC._Right._Left ^. CLC.to length
+                    , _theirShared = MM.Pages 0 0
+                    }
                 , _statistics = MM.Pages 0 . pagesCount
                     (settings ^. statisticsPageCount.CLC.to read)
                     $ statistics ^. CLC.to length
