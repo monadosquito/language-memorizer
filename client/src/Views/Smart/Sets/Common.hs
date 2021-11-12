@@ -180,14 +180,16 @@ sets' bemClass' model = M.main_
                 ]
                 [ M.text $ set' ^. name.to ms
                 ]
-            , M.input_
-                [ M.class_ . bemClass "Button" $ BemClass "Sets" [ darkMode' model ] []
-                , M.onClick $ MA.DeleteSet setIx
-                , M.type_ "button"
-                , M.value_ "-"
-                ]
             ] ++ case setsType of
-                MM.Local -> [ M.input_
+                MM.Local    ->
+                    [ M.input_
+                        [ M.class_ . bemClass "Button"
+                            $ BemClass "Sets" [ darkMode' model ] []
+                        , M.onClick $ MA.DeleteSet setIx
+                        , M.type_ "button"
+                        , M.value_ "Delete"
+                        ]
+                    , M.input_
                         [ M.class_ . bemClass "Button"
                             $ BemClass "Sets" [ darkMode' model ] []
                         , M.onClick $ MA.ShareSet setIx
@@ -195,8 +197,22 @@ sets' bemClass' model = M.main_
                         , M.value_ "Share"
                         ]
                     ]
-                _        -> []
-            ))
+                MM.MyShared ->
+                    [ M.input_
+                        [ M.class_ . bemClass "Button"
+                            $ BemClass "Sets" [ darkMode' model ] []
+                        , M.onClick $ MA.UnshareSet setIx
+                        , M.type_ "button"
+                        , M.value_ "Unshare"
+                        ]
+                    ]
+                _           ->
+                    [ M.input_
+                        [ M.onClick $ MA.DeleteSet setIx
+                        , M.type_ "button"
+                        , M.value_ "Delete"
+                        ]
+                    ]))
         $ paginate
             (model ^. pagination.sets.case setsType of
                     MM.Downloaded -> downloaded

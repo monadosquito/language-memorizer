@@ -50,6 +50,7 @@ data Action
     | SwitchActiveSetsType SetsType
     | SwitchPage PageSwitchWay Paginated
     | ToggleMenuVisibility
+    | UnshareSet SharedSetIx
     | UpdatePagination PaginationUpdatingWay
     | UpdateSets GoingSet (Maybe SetsType) (Maybe SetIx) Set'
     | UpdateSettings Settings

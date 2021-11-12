@@ -89,8 +89,13 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
             (\case
                 Left _         ->
                     [ M.input_
-                        [ M.class_ . U.bemClass "Button"
-                            $ U.BemClass "Set" [ U.darkMode' model ] []
+                        [ M.class_ . U.bemClass "Button" $ U.BemClass "Set" [] []
+                        , M.onClick $ MA.UnshareSet setIx'
+                        , M.type_ "button"
+                        , M.value_ "Unshare"
+                        ]
+                    , M.input_
+                        [ M.class_ . U.bemClass "Button" $ U.BemClass "Set" [] []
                         , M.onClick $ MA.UpdateSharedSet setIx'
                         , M.type_ "button"
                         , M.value_ "Update"

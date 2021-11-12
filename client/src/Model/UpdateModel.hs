@@ -536,6 +536,25 @@ updateModel MA.ToggleMenuVisibility                                         mode
     (model&menuIsVisible %~ not) M.<# do
         _ <- M.getBody LJJ.! "classList" LJJ.# "toggle" $ [ "covered" ]
         pure MA.DoNothing
+updateModel (MA.UnshareSet sharedSetIx)                                     model = model M.<# do
+    fetchOptions <- LJJ.create
+    jsValAuthToken <- LJJ.jsg "localStorage" LJJ.# "getItem" $ [ "authToken" ]
+    authToken <- fromMisoString <$> LJJ.valToStr jsValAuthToken
+    fetchHeaders <- LJJ.create
+    fetchHeaders LJJ.<# "authorization" $ "Bearer " ++ authToken
+    fetchOptions LJJ.<# "headers" $ fetchHeaders
+    fetchOptions LJJ.<# "method" $ "DELETE"
+    unshareSetUrl <- liftIO $ getEnv "api_server_unshare_set_url"
+    _ <- LJJ.jsg2
+        "fetch"
+        (unshareSetUrl
+            ++ "/"
+            ++ model
+                ^? sets.ix sharedSetIx._Right._Left.Model.UpdateModel.id
+                ^. non (-1) ^. to show)
+        fetchOptions
+    pure . MA.UpdateSets False (Just MA.MyLocal) (Just sharedSetIx) . Left
+        $ model ^? sets.ix sharedSetIx._Right._Left.set ^. non (C.Set "" Nothing)
 updateModel (MA.UpdateMemorizing liteSetIx' tmpUnitIx' translateIx')        model = (model
     &memorizing .~ newMemorizing
     &statistics .~ newStatistics

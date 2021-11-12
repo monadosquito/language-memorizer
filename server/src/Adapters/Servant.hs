@@ -44,6 +44,9 @@ type Api
         S.:> "share-set" S.:> S.ReqBody '[S.JSON] C.Set
             S.:> S.Post '[S.PlainText] String
     S.:<|> SAS.Auth '[SAS.JWT] AuthTokenPayload
+        S.:> "unshare-set" S.:> S.Capture "shared-set-id" Int
+            S.:> S.DeleteNoContent '[S.PlainText] S.NoContent
+    S.:<|> SAS.Auth '[SAS.JWT] AuthTokenPayload
         S.:> "update-shared-set" S.:> S.ReqBody '[S.JSON] C.SharedSet
             S.:> S.Post '[S.PlainText] String
     S.:<|> S.Verb 'S.OPTIONS 200 '[S.PlainText] S.NoContent
@@ -58,11 +61,13 @@ data Servant = Servant deriving (Eq, Show)
 instance WwwServer Servant where
     run dbCon = do
         allowedReqHeaders <- getEnv "allowed_request_headers"
+        allowedReqMethods <- getEnv "allowed_request_methods"
         allowedReqOrigs <- getEnv "allowed_request_origins"
         jwtKey <- SAS.generateKey
         let
             corsPolicy = NWMC.simpleCorsResourcePolicy
-                { NWMC.corsOrigins        =
+                { NWMC.corsMethods        = DBC.words $ fromString allowedReqMethods
+                , NWMC.corsOrigins        =
                     if allowedReqOrigs == "*"
                     then Nothing
                     else Just (DBC.words $ fromString allowedReqOrigs, False)
@@ -86,6 +91,7 @@ server dbConn jwtSettings
     S.:<|> signIn
     S.:<|> signUp
     S.:<|> shareSet
+    S.:<|> unshareSet
     S.:<|> updateSharedSet
     S.:<|> corsOptions
   where
@@ -127,6 +133,12 @@ server dbConn jwtSettings
         if insertedRowsCount == 0
             then S.throwError S.err409
             else pure S.NoContent
+    unshareSet (SAS.Authenticated (AuthTokenPayload langMemorizerId)) sharedSetId = do
+        sharedSetOwnerId <- liftIO $ getSetOwnerId dbConn sharedSetId
+        if sharedSetOwnerId == langMemorizerId
+            then liftIO $ deleteSet dbConn sharedSetId >> pure S.NoContent
+            else S.throwError S.err403
+    unshareSet _ _ = S.throwError S.err401
     updateSharedSet
         (SAS.Authenticated (AuthTokenPayload langMemorizerId))
         (C.SharedSet sharedSetId (C.Set name mdUnits))
