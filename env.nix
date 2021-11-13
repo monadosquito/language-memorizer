@@ -7,6 +7,7 @@
       api_server_sign_in_url = "${api_server_url}/sign-in";
       api_server_sign_up_url = "${api_server_url}/sign-up";
       api_server_share_set_url = "${api_server_url}/share-set";
+      api_server_unshare_set_url = "${api_server_url}/unshare-set";
       api_server_update_shared_set_url = "${api_server_url}/update-shared-set";
       api_server_url = "http://localhost:3000";
     };
@@ -18,6 +19,7 @@
   server = rec {
     common = {
       allowed_request_headers = ["authorization" "content-type"];
+      allowed_request_methods = ["DELETE" "GET" "POST"];
       api_server_port = "3000";
     };
     dev = {
