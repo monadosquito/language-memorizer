@@ -16,7 +16,7 @@ import Text.Sass.Compilation (StringResult, compileFile)
 import Text.Sass.Options (defaultSassOptions)
 #endif
 import Control.Lens ((^.), (^..), (^?))
-import Control.Lens.Combinators (_Left, to)
+import Control.Lens.Combinators (_Left, _Right, non, to)
 import Control.Lens.Extras (is)
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Language.Javascript.JSaddle ((!), (#), (<#), jsg, valIsNull, valToStr)
@@ -25,7 +25,7 @@ import System.Environment (getEnv)
 
 import Common (Set (), SharedSet ())
 import Model.UpdateModel (updateModel)
-import Utils (pagesCount, set')
+import Utils (SetIx (), pagesCount, set')
 import Views.Dumb.Providing.Root.Touchscreen (root)
 
 import qualified Control.Lens.Combinators as CLC
@@ -59,6 +59,9 @@ main = runApp $ do
     jsValLangMemorizerName <- jsg "localStorage" # "getItem" $ [ "langMemorizerName" ]
     jsValLangMemorizerNameIsNull <- valIsNull jsValLangMemorizerName
     langMemorizerName <- valToStr jsValLangMemorizerName
+    dislikedSetsIds <- M.getLocalStorage
+        $ ms "dislikedSetsIds" :: M.JSM (Either String [SetIx])
+    likedSetsIds <- M.getLocalStorage $ ms "likedSetsIds" :: M.JSM (Either String [SetIx])
     memorizing <- M.getLocalStorage
         $ ms "memorizing" :: M.JSM (Either String MM.Memorizing)
     sets' <- M.getLocalStorage $ ms "sets"
@@ -86,9 +89,11 @@ main = runApp $ do
         , model         = MM.Model
             { _activeSetIx       = -1
             , _activeSetsType    = MM.Local
+            , _dislikedSetsIds   = dislikedSetsIds ^? _Right ^. non []
             , _editedSet         = MM.EditedSet (ms "") []
             , _langMemorizerName =
                 if jsValLangMemorizerNameIsNull then Nothing else Just langMemorizerName
+            , _likedSetsIds      = likedSetsIds ^? _Right ^. non []
             , _liteSharedSets    = []
             , _memorizing        = memorizing ^? CLC._Right ^. CLC.non (MM.Memorizing
                 { _answer          = ms ""

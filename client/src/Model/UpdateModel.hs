@@ -35,6 +35,7 @@ makeFieldsNoPrefix ''C.LanguageMemorizer
 makeFieldsNoPrefix ''C.Set
 makeFieldsNoPrefix ''C.SharedSet
 makeFieldsNoPrefix ''C.Unit
+makeFieldsNoPrefix ''MM.BeingDownloadedSet
 makeFieldsNoPrefix ''MM.EditedSet
 makeFieldsNoPrefix ''MM.LiteLanguageMemorizer
 makeFieldsNoPrefix ''MM.LiteSet
@@ -112,6 +113,44 @@ updateModel (MA.DeleteUnit unitIx')                                         mode
         else 0)
     newUnits       = (^.. traversed.ifiltered (\unitIx'' _ -> unitIx'' /= unitIx'))
     activeSetIx'   = model ^. activeSetIx
+updateModel (MA.DislikeSharedSet sharedSetIx)                               model =
+    (if elem sharedSetId $ model ^. dislikedSetsIds
+    then model
+        &dislikedSetsIds %~ filter (/= sharedSetId)
+        &sets.ix sharedSetIx._Right._Right._Left.sharedSet.dislikeCount -~ 1
+    else model
+        &dislikedSetsIds %~ (++ [ sharedSetId ])
+        &likedSetsIds %~ filter (/= sharedSetId)
+        &sets.ix sharedSetIx._Right._Right._Left.sharedSet.dislikeCount +~ 1
+        &sets.ix sharedSetIx._Right._Right._Left.sharedSet.likeCount
+            -~ (if elem sharedSetId $ model ^. likedSetsIds then 1 else 0))
+    M.<# do
+        M.setLocalStorage (ms "dislikedSetsIds")
+            $ model ^. dislikedSetsIds.to (++ [ sharedSetId ])
+        M.setLocalStorage (ms "likedSetsIds")
+            $ model ^. likedSetsIds.to (filter (/= sharedSetId))
+        fetchOptions <- LJJ.create
+        jsValAuthToken <- LJJ.jsg "localStorage" LJJ.# "getItem" $ [ "authToken" ]
+        authToken <- fromMisoString <$> LJJ.valToStr jsValAuthToken
+        fetchHeaders <- LJJ.create
+        fetchHeaders LJJ.<# "authorization" $ "Bearer " ++ authToken
+        fetchOptions LJJ.<# "headers" $ fetchHeaders
+        fetchOptions LJJ.<# "method" $ "PATCH"
+        likeSharedSetUrl <- liftIO $ getEnv "api_server_estim_shared_set_url"
+        _ <- LJJ.jsg2
+            "fetch"
+            (likeSharedSetUrl ++ "/dislike/" ++ (show
+                $ model
+                    ^? sets.ix sharedSetIx
+                        ._Right._Right._Left.sharedSet.Model.UpdateModel.id
+                    ^. non (-1)))
+            fetchOptions
+        pure MA.DoNothing
+  where
+    sharedSetId = model
+        ^? sets.ix sharedSetIx
+            ._Right._Right._Left.sharedSet.Model.UpdateModel.id
+        ^. non (-1)
 updateModel MA.DoNothing                                                    model =
     M.noEff model
 updateModel (MA.DownloadSharedSet sharedSetId)                              model =
@@ -127,16 +166,16 @@ updateModel (MA.DownloadSharedSet sharedSetId)                              mode
                     pure ()
             pure ()
         liftIO $ threadDelay 1000000
-        Right sharedSet <- M.getLocalStorage $ ms "tmpSharedSet"
+        Right sharedSet' <- M.getLocalStorage $ ms "tmpSharedSet"
             :: M.JSM (Either String C.SharedSet)
         M.removeLocalStorage $ ms "tmpSharedSet"
         if is (_Just._Left) $ sets' ^? ix (sets' ^. to length - 1)._Right._Right
             then
                 pure . MA.UpdateSets True Nothing (Just lastSetIx) . Right . Right . Left
-                    $ MM.BeingDownloadedSet sharedSet
+                    $ MM.BeingDownloadedSet sharedSet'
             else
                 pure . MA.UpdateSets True Nothing Nothing . Right . Right . Left
-                    $ MM.BeingDownloadedSet sharedSet
+                    $ MM.BeingDownloadedSet sharedSet'
   where
     lastSetIx = sets' ^. to length - 1
     sets'     = model ^. sets
@@ -189,6 +228,40 @@ updateModel MA.FailMemorizingStep                                           mode
         %~ (++ [ MM.SetResultStep False $ memorizing' ^. unitIx ])
 updateModel (MA.HandleUri uri')                                             model =
     M.noEff $ model&uri .~ uri'
+updateModel (MA.LikeSharedSet sharedSetIx)                                  model =
+    (if elem sharedSetId $ model ^. likedSetsIds
+    then model
+        &likedSetsIds %~ filter (/= sharedSetId)
+        &sets.ix sharedSetIx._Right._Right._Left.sharedSet.likeCount -~ 1
+    else model
+        &dislikedSetsIds %~ filter (/= sharedSetId)
+        &likedSetsIds %~ (++ [ sharedSetId ])
+        &sets.ix sharedSetIx._Right._Right._Left.sharedSet.dislikeCount
+            -~ (if elem sharedSetId $ model ^. dislikedSetsIds then 1 else 0)
+        &sets.ix sharedSetIx._Right._Right._Left.sharedSet.likeCount +~ 1)
+        M.<# do
+            M.setLocalStorage (ms "dislikedSetsIds")
+                $ model ^. dislikedSetsIds.to (filter (/= sharedSetId))
+            M.setLocalStorage (ms "likedSetsIds")
+                $ model ^. likedSetsIds.to (++ [ sharedSetId ])
+            fetchOptions <- LJJ.create
+            jsValAuthToken <- LJJ.jsg "localStorage" LJJ.# "getItem" $ [ "authToken" ]
+            authToken <- fromMisoString <$> LJJ.valToStr jsValAuthToken
+            fetchHeaders <- LJJ.create
+            fetchHeaders LJJ.<# "authorization" $ "Bearer " ++ authToken
+            fetchOptions LJJ.<# "headers" $ fetchHeaders
+            fetchOptions LJJ.<# "method" $ "PATCH"
+            likeSharedSetUrl <- liftIO $ getEnv "api_server_estim_shared_set_url"
+            _ <- LJJ.jsg2
+                "fetch"
+                (likeSharedSetUrl ++ "/like/" ++ show sharedSetId)
+                fetchOptions
+            pure MA.DoNothing
+  where
+    sharedSetId = model
+        ^? sets.ix sharedSetIx
+            ._Right._Right._Left.sharedSet.Model.UpdateModel.id
+        ^. non (-1)
 updateModel (MA.RefreshSet setIx')                                          model = (model
     &editedSet.ixedUnits .~ []
     &editedSet.name .~ model ^? sets.ix setIx'.to set'.name ^. non "".to ms
@@ -265,8 +338,8 @@ updateModel MA.SelectRandomMemorizingUnit                                   mode
 updateModel MA.SetDownloadedSet                                             model =
     M.batchEff
         (model&sets.ix (model ^. sets.to length - 1)._Right._Right
-            %~ (\(Left (MM.BeingDownloadedSet sharedSet)) ->
-                Right $ MM.DownloadedSet sharedSet))
+            %~ (\(Left (MM.BeingDownloadedSet sharedSet')) ->
+                Right $ MM.DownloadedSet sharedSet'))
         [ pure MA.SaveSets, pure . MA.UpdatePagination . MA.Part . MA.Sets $ MA.Downloaded ]
 updateModel (MA.SetLanguageMemorizerName langMemorizerName')                model =
     M.noEff $ model&langMemorizerName .~ Just langMemorizerName'
@@ -307,7 +380,7 @@ updateModel (MA.ShareSet setIx')                                            mode
             . MA.UpdateSets False (Just MA.MyShared) (Just setIx')
             . Right
             . Left
-            . C.SharedSet (round sharedSetId)
+            . C.SharedSet 0 (round sharedSetId) 0
             $ model ^? sets.ix setIx'._Left ^. non (C.Set "" Nothing)
 updateModel (MA.ShowAnswer MA.Text')                                        model = (model
     &memorizing.answer .~ model
@@ -647,7 +720,7 @@ updateModel (MA.UpdateSharedSet sharedSetIx)                                mode
     fetchOptions <- LJJ.create
     fetchOptions LJJ.<# "body"
         $ ms . encode
-            $ model ^? sets.ix sharedSetIx._Right._Left ^. non (C.SharedSet (-1)
+            $ model ^? sets.ix sharedSetIx._Right._Left ^. non (C.SharedSet (-1) (-1) (-1)
                 $ C.Set "" Nothing)
     jsValAuthToken <- LJJ.jsg "localStorage" LJJ.# "getItem" $ [ "authToken" ]
     authToken <- fromMisoString <$> LJJ.valToStr jsValAuthToken

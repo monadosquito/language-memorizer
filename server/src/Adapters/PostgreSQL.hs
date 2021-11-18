@@ -15,6 +15,11 @@ import qualified Database.PostgreSQL.Simple as DPS
 
 
 instance DbConnection PostgreSQLConn where
+    addDislike (PostgreSQLConn postgreSQLConn) (likedSetId, likerId) = DPS.execute
+        postgreSQLConn
+        "INSERT INTO \"dislike\" VALUES (?, ?) ON CONFLICT DO NOTHING"
+        (likedSetId, likerId)
+
     addLanguageMemorizer
         (PostgreSQLConn postgreSQLConn)
         (LanguageMemorizer email name password)
@@ -25,6 +30,11 @@ instance DbConnection PostgreSQLConn where
             \VALUES (?, ?, ?)\
             \ON CONFLICT DO NOTHING"
             (email, name, password)
+
+    addLike (PostgreSQLConn postgreSQLConn) (likedSetId, likerId) = DPS.execute
+        postgreSQLConn
+        "INSERT INTO \"like\" VALUES (?, ?) ON CONFLICT DO NOTHING"
+        (likedSetId, likerId)
 
     addSet (PostgreSQLConn postgreSQLConn) langMemorizerId setName =
         (DPS.fromOnly . head) <$> (DPS.query
@@ -57,6 +67,16 @@ instance DbConnection PostgreSQLConn where
             , DPS.connectUser     = databaseUserName
             })
 
+    deleteDislike (PostgreSQLConn postgreSQLConn) (likedSetId, likerId) = DPS.execute
+        postgreSQLConn
+        "DELETE FROM \"dislike\" WHERE disliked_set_id = ? AND disliker_id = ?"
+        (likedSetId, likerId)
+
+    deleteLike (PostgreSQLConn postgreSQLConn) (likedSetId, likerId) = DPS.execute
+        postgreSQLConn
+        "DELETE FROM \"like\" WHERE liked_set_id = ? AND liker_id = ?"
+        (likedSetId, likerId)
+
     deleteSet (PostgreSQLConn postgreSQLConn) setId =
         void . DPS.execute postgreSQLConn "DELETE FROM set WHERE id = ?"
             $ DPS.Only setId
@@ -77,6 +97,16 @@ instance DbConnection PostgreSQLConn where
             postgreSQLConn
             "SELECT id, name FROM lang_memorizer WHERE email = ? AND password = ?"
             (email, password)
+
+    getSetDislikes (PostgreSQLConn postgreSQLConn) setId = DPS.query
+        postgreSQLConn
+        "SELECT disliked_set_id, disliker_id FROM dislike WHERE disliked_set_id = ?"
+        $ DPS.Only setId :: IO [(Int, Int)]
+
+    getSetLikes (PostgreSQLConn postgreSQLConn) setId = DPS.query
+        postgreSQLConn
+        "SELECT liked_set_id, liker_id FROM \"like\" WHERE liked_set_id = ?"
+        $ DPS.Only setId :: IO [(Int, Int)]
 
     getSetName (PostgreSQLConn postgreSQLConn) setId = (DPS.fromOnly . head)
         <$> (DPS.query

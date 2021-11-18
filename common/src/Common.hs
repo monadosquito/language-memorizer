@@ -33,8 +33,10 @@ data Set = Set
     } deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
 
 data SharedSet = SharedSet
-    { _id  :: Int
-    , _set :: Set
+    { _dislikeCount :: Int
+    , _id           :: Int
+    , _likeCount    :: Int
+    , _set          :: Set
     } deriving (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
 
 data Unit = Unit

@@ -18,6 +18,7 @@ import Data.Aeson (FromJSON (), ToJSON ())
 import Data.ByteString.Lazy.Char8 (unpack)
 import Data.ByteString.UTF8 (fromString)
 import Data.CaseInsensitive (mk)
+import Data.Int (Int64 ())
 import GHC.Generics (Generic ())
 import System.Environment (getEnv)
 
@@ -41,6 +42,11 @@ type Api
     S.:<|> "sign-up" S.:> S.ReqBody '[S.JSON] C.LanguageMemorizer
         S.:> S.PostNoContent '[S.PlainText] S.NoContent
     S.:<|> SAS.Auth '[SAS.JWT] AuthTokenPayload
+        S.:> "estim-shared-set"
+        S.:> S.Capture "estim" Estim
+        S.:> S.Capture "shared-set-id" Int
+        S.:> S.PatchNoContent '[S.PlainText] S.NoContent
+    S.:<|> SAS.Auth '[SAS.JWT] AuthTokenPayload
         S.:> "share-set" S.:> S.ReqBody '[S.JSON] C.Set
             S.:> S.Post '[S.PlainText] String
     S.:<|> SAS.Auth '[SAS.JWT] AuthTokenPayload
@@ -55,6 +61,14 @@ data AuthTokenPayload = AuthTokenPayload
     { _id :: Int
     } deriving anyclass (FromJSON, SAS.FromJWT, SAS.ToJWT, ToJSON)
       deriving stock (Eq, Generic, Show)
+
+data Estim = Dislike | Like deriving stock (Eq, Show)
+
+instance S.FromHttpApiData Estim where
+    parseUrlPiece piece = case piece of
+        "dislike" -> Right Dislike
+        "like"    -> Right Like
+        _         -> Left ""
 
 data Servant = Servant deriving (Eq, Show)
 
@@ -90,20 +104,50 @@ server dbConn jwtSettings
     S.:<|> getSharedSetsIdsAndNames
     S.:<|> signIn
     S.:<|> signUp
+    S.:<|> estimSharedSet
     S.:<|> shareSet
     S.:<|> unshareSet
     S.:<|> updateSharedSet
     S.:<|> corsOptions
   where
+    estimSharedSet' :: AddEstimateAction -> DeleteEstimateAction -> IO ()
+    estimSharedSet' addEstimAct delEstimAct = do
+        insertedRowsCount <- addEstimAct
+        if insertedRowsCount == 0
+            then delEstimAct >> pure ()
+            else pure ()
+
     corsOptions = pure S.NoContent
+    estimSharedSet (SAS.Authenticated (AuthTokenPayload langMemorizerId)) Like sharedSetId
+        = do
+            liftIO $ do
+                _ <- deleteDislike dbConn (sharedSetId, langMemorizerId)
+                estimSharedSet'
+                    (addLike dbConn (sharedSetId, langMemorizerId))
+                    (deleteLike dbConn (sharedSetId, langMemorizerId))
+            pure S.NoContent
+    estimSharedSet (SAS.Authenticated (AuthTokenPayload langMemorizerId)) Dislike sharedSetId
+        = do
+            liftIO $ do
+                _ <- deleteLike dbConn (sharedSetId, langMemorizerId)
+                estimSharedSet'
+                    (addDislike dbConn (sharedSetId, langMemorizerId))
+                    (deleteDislike dbConn (sharedSetId, langMemorizerId))
+            pure S.NoContent
+    estimSharedSet _ _ _ = S.throwError S.err401
     getSharedSet sharedSetId = do
         unitsIdsAndTexts <- liftIO $ getSetUnits dbConn sharedSetId
         units <- liftIO $ mapM
             (\(unitId, unitText) ->
                 pure . C.Unit unitText =<< getTranslatesTexts dbConn unitId)
             unitsIdsAndTexts
+        sharedSetLikes <- liftIO $ getSetLikes dbConn sharedSetId
+        sharedSetDislikes <- liftIO $ getSetDislikes dbConn sharedSetId
         sharedSetName <- liftIO $ getSetName dbConn sharedSetId
-        pure . C.SharedSet sharedSetId . C.Set sharedSetName $ Just units
+        pure
+            . C.SharedSet (length sharedSetDislikes) sharedSetId (length sharedSetLikes)
+            . C.Set sharedSetName
+            $ Just units
     getSharedSetsIdsAndNames = liftIO $ getSetsIdsAndNames dbConn
     shareSet
         (SAS.Authenticated (AuthTokenPayload langMemorizerId))
@@ -141,14 +185,16 @@ server dbConn jwtSettings
     unshareSet _ _ = S.throwError S.err401
     updateSharedSet
         (SAS.Authenticated (AuthTokenPayload langMemorizerId))
-        (C.SharedSet sharedSetId (C.Set name mdUnits))
+        (C.SharedSet _ sharedSetId _ (C.Set name mdUnits))
         = do
         sharedSetOwnerId <- liftIO $ getSetOwnerId dbConn sharedSetId
         if sharedSetOwnerId == langMemorizerId
             then liftIO . withTransaction dbConn $ do
+                setLikes <- liftIO $ getSetLikes dbConn sharedSetId
                 deleteSet dbConn sharedSetId
                 newSharedSetId <- liftIO $ addSet dbConn langMemorizerId name
                 addUnitsWithTrans newSharedSetId mdUnits
+                mapM_ (liftIO . addLike dbConn) setLikes
                 pure $ show newSharedSetId
             else S.throwError S.err403
     updateSharedSet _ _ = S.throwError S.err401
@@ -160,4 +206,6 @@ server dbConn jwtSettings
             void $ mapM_ (addTranslate dbConn unitId) translates)
         units
     addUnitsWithTrans _           Nothing      = pure ()
-type SharedSetId = Int
+type SharedSetId          = Int
+type AddEstimateAction    = IO Int64
+type DeleteEstimateAction = IO Int64

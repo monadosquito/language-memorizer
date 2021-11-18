@@ -1,3 +1,15 @@
+CREATE TABLE dislike
+    ( disliked_set_id SERIAL REFERENCES set(id)
+    , disliker_id SERIAL REFERENCES lang_memorizer(id)
+    , PRIMARY KEY (disliked_set_id, disliker_id)
+    );
+
+CREATE TABLE "like"
+    ( liked_set_id SERIAL REFERENCES set(id)
+    , liker_id SERIAL REFERENCES lang_memorizer(id)
+    , PRIMARY KEY (liked_set_id, liker_id)
+    );
+
 CREATE TABLE lang_memorizer
     ( id SERIAL PRIMARY KEY
     , email VARCHAR(255) UNIQUE

@@ -27,11 +27,13 @@ data Action
     | DeleteSet SetIx
     | DeleteTranslate UnitIx TranslateIx
     | DeleteUnit UnitIx
+    | DislikeSharedSet SharedSetIx
     | DoNothing
     | DownloadSharedSet SetIx
     | EditSet EditedSetPart UnitIx EditedSetPartValue
     | FailMemorizingStep
     | HandleUri URI
+    | LikeSharedSet SharedSetIx
     | RefreshSet SetIx
     | RepeatMemorizing
     | SaveSet

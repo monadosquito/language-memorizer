@@ -106,10 +106,10 @@ paginate _    0           xs = xs
 paginate page pagesCount' xs = take pagesCount' $ drop (page * pagesCount') xs
 
 set' :: Either Set (Either SharedSet (Either MM.BeingDownloadedSet MM.DownloadedSet)) -> Set
-set' (Left  set)                                                      = set
-set' (Right (Left (SharedSet _ set)))                                 = set
-set' (Right (Right (Left (MM.BeingDownloadedSet (SharedSet _ set))))) = set
-set' (Right (Right (Right (MM.DownloadedSet (SharedSet _ set)))))     = set
+set' (Left  set)                                                          = set
+set' (Right (Left (SharedSet _ _ _ set)))                                 = set
+set' (Right (Right (Left (MM.BeingDownloadedSet (SharedSet _ _ _ set))))) = set
+set' (Right (Right (Right (MM.DownloadedSet (SharedSet _ _ _ set)))))     = set
 
 setResultsIsDone :: MM.Model -> Bool
 setResultsIsDone model =

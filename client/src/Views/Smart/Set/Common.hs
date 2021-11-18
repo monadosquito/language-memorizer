@@ -12,9 +12,9 @@ import Control.Lens ((^.), (^..), (^?))
 import Control.Lens.TH (makeFieldsNoPrefix)
 import Miso.String (ms)
 
-import Common (Set (Set), Unit ())
+import Common (Set (Set), SharedSet (SharedSet), Unit ())
 import Model.Action (Action (AddUnit))
-import Model.Model (Model())
+import Model.Model (Model ())
 import Views.Smart.PageSwitcher.Common (pageSwitcher)
 
 import qualified Control.Lens.Combinators as CLC
@@ -87,7 +87,7 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
                     ]
                 ])
             (\case
-                Left _         ->
+                Left _ ->
                     [ M.input_
                         [ M.class_ . U.bemClass "Button" $ U.BemClass "Set" [] []
                         , M.onClick $ MA.UnshareSet setIx'
@@ -103,13 +103,54 @@ set bemClass' setIx' model = M.nodeHtmlKeyed "main" (M.Key "set")
                     , saveSetBtn
                     , setNameElem True
                     ]
-                Right (Left _) ->
+                Right
+                    (Left
+                        (MM.BeingDownloadedSet
+                            (SharedSet dislikeCount id' likeCount _))) ->
                     [ M.input_
                         [ M.class_ . U.bemClass "Button"
                             $ U.BemClass "Set" [ U.darkMode' model ] []
                         , M.onClick $ MA.SetDownloadedSet
                         , M.type_ "button"
                         , M.value_ "Download"
+                        ]
+                    , M.div_
+                        [ M.class_ . U.bemClass "Button"
+                            $ U.BemClass
+                                "Set"
+                                [ U.darkMode' model
+                                , if model ^. dislikedSetsIds.CLC.to (elem id')
+                                    then "highlighted"
+                                    else ""
+                                ]
+                                []
+                        , M.onClick $ MA.DislikeSharedSet setIx'
+                        ]
+                        [ M.span_ [] 
+                            [ M.text "v | "
+                            ]
+                        , M.span_ []
+                            [ M.text $ dislikeCount ^. CLC.to ms
+                            ]
+                        ]
+                    , M.div_
+                        [ M.class_ . U.bemClass "Button"
+                            $ U.BemClass
+                                "Set"
+                                [ U.darkMode' model
+                                , if model ^. likedSetsIds.CLC.to (elem id')
+                                    then "highlighted"
+                                    else ""
+                                ]
+                                []
+                        , M.onClick $ MA.LikeSharedSet setIx'
+                        ]
+                        [ M.span_ []
+                            [ M.text "^ | "
+                            ]
+                        , M.span_ []
+                            [ M.text $ likeCount ^. CLC.to ms
+                            ]
                         ]
                     , setNameElem False
                     ]

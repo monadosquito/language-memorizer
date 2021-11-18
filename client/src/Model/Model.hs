@@ -29,7 +29,7 @@ import Miso.String (MisoString ())
 import Common (LiteSharedSet (), Set (), SharedSet (), Unit ())
 
 
-newtype BeingDownloadedSet = BeingDownloadedSet SharedSet
+newtype BeingDownloadedSet = BeingDownloadedSet { _sharedSet :: SharedSet }
     deriving anyclass (FromJSON, ToJSON) deriving stock (Eq, Generic, Show)
 
 newtype DownloadedSet = DownloadedSet { _sharedSet :: SharedSet }
@@ -59,7 +59,9 @@ data Model = Model
     { _activeSetIx       :: SetIx
     , _activeSetsType    :: SetsType
     , _editedSet         :: EditedSet
+    , _dislikedSetsIds   :: [SetId]
     , _langMemorizerName :: Maybe LanguageMemorizerName
+    , _likedSetsIds      :: [SetId]
     , _liteSharedSets    :: [LiteSharedSet]
     , _memorizing        :: Memorizing
     , _menuIsVisible     :: Bool
@@ -72,6 +74,7 @@ data Model = Model
 type LanguageMemorizerName = MisoString
 type Sets                  =
     [Either Set (Either SharedSet (Either BeingDownloadedSet DownloadedSet))]
+type SetId                 = Int
 type SetIx                 = Int
 type UnitIx                = Int
 

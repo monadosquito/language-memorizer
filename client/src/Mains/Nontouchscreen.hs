@@ -25,7 +25,7 @@ import System.Environment (getEnv)
 
 import Common (Set (), SharedSet ())
 import Model.UpdateModel (updateModel)
-import Utils (pagesCount, set')
+import Utils (SetIx (), pagesCount, set')
 import Views.Dumb.Providing.Root.Nontouchscreen (root)
 
 import qualified Control.Lens.Combinators as CLC
@@ -61,6 +61,9 @@ main = runApp $ do
     jsValLangMemorizerName <- jsg "localStorage" # "getItem" $ [ "langMemorizerName" ]
     jsValLangMemorizerNameIsNull <- valIsNull jsValLangMemorizerName
     langMemorizerName <- valToStr jsValLangMemorizerName
+    dislikedSetsIxs <- M.getLocalStorage
+        $ ms "dislikedSetsIxs" :: M.JSM (Either String [SetIx])
+    likedSetsIxs <- M.getLocalStorage $ ms "likedSetsIxs" :: M.JSM (Either String [SetIx])
     memorizing <- M.getLocalStorage
         $ ms "memorizing" :: M.JSM (Either String MM.Memorizing)
     sets' <- M.getLocalStorage $ ms "sets"
@@ -89,8 +92,10 @@ main = runApp $ do
             { _activeSetIx       = -1
             , _activeSetsType    = MM.Local
             , _editedSet         = MM.EditedSet (ms "") [] 
+            , _dislikedSetsIds   = dislikedSetsIxs ^? CLC._Right ^. CLC.non []
             , _langMemorizerName =
                 if jsValLangMemorizerNameIsNull then Nothing else Just langMemorizerName
+            , _likedSetsIds      = likedSetsIxs ^? CLC._Right ^. CLC.non []
             , _liteSharedSets    = []
             , _memorizing        = memorizing ^? CLC._Right ^. CLC.non (MM.Memorizing
                 { _answer          = ms ""
