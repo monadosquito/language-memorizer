@@ -61,7 +61,8 @@ memorizing' bemClass' model = M.main_
                     MM.Text       -> textMemorizing unit'
                     MM.Translates -> tranlatesMemorizing unit')))
         ++ [ M.div_ 
-            [ M.class_ . bemClass "ControlPanel" $ BemClass "Memorizing" [] []
+            [ M.class_ . bemClass "ControlPanel"
+                $ BemClass "Memorizing" [] [ maybe "done" (const "") maybeUnit ]
             ]
             ([ M.input_
                 [ M.class_ . bemClass "Button" $ BemClass "Memorizing" [] []
